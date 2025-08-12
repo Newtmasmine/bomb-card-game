@@ -976,9 +976,8 @@
             if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 return 'http://localhost:3000/api';
             }
-            // 生产环境 - 请部署后替换为实际的后端URL
-            // 例如: 'https://your-app-name.up.railway.app/api'
-            return 'https://your-backend-url.up.railway.app/api';
+            // 生产环境 - Vercel部署地址
+            return 'https://bomb-card-game-dnlw362eh-newtmasmines-projects.vercel.app/api';
         };
         
         const API_BASE_URL = getAPIBaseURL();
