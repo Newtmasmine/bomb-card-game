@@ -65,21 +65,25 @@ class User {
             return await db.get(`
                 SELECT 
                     u.username,
-                    u.current_balance,
-                    u.total_rewards,
+                    u.balance as current_balance,
+                    0 as total_rewards,
                     u.created_at,
                     u.last_login,
-                    s.total_flips,
-                    s.games_played,
-                    s.rounds_played,
-                    s.early_exits,
-                    s.bomb_triggers,
-                    s.total_game_time
+                    COALESCE(s.games_played, 0) as games_played,
+                    COALESCE(s.games_won, 0) as games_won,
+                    COALESCE(s.total_score, 0) as total_score,
+                    COALESCE(s.best_score, 0) as best_score,
+                    0 as total_flips,
+                    0 as rounds_played,
+                    0 as early_exits,
+                    0 as bomb_triggers,
+                    0 as total_game_time
                 FROM users u
                 LEFT JOIN user_stats s ON u.id = s.user_id
                 WHERE u.id = ?
             `, [userId]);
         } catch (error) {
+            console.error('getStats error:', error);
             throw error;
         }
     }
