@@ -149,14 +149,18 @@ class AdminController {
     static async getUserDetail(req, res) {
         try {
             const { userId } = req.params;
+            console.log('获取用户详情，用户ID:', userId);
             
             const user = await User.getStats(userId);
             if (!user) {
+                console.log('用户不存在，ID:', userId);
                 return res.status(404).json({
                     success: false,
                     message: '用户不存在'
                 });
             }
+            
+            console.log('获取到用户信息:', user);
 
             // 获取用户的游戏会话数据
             const sessions = await database.query(`
@@ -179,6 +183,8 @@ class AdminController {
                 WHERE gs.user_id = ?
                 ORDER BY gs.start_time DESC, gr.created_at ASC
             `, [userId]);
+
+            console.log('获取到会话数据:', sessions.length, '条记录');
 
             // 组织会话和轮次数据
             const sessionMap = new Map();
@@ -209,6 +215,7 @@ class AdminController {
             });
 
             const organizedSessions = Array.from(sessionMap.values());
+            console.log('组织后的会话数据:', organizedSessions.length, '个会话');
 
             res.json({
                 success: true,
@@ -219,9 +226,10 @@ class AdminController {
             });
         } catch (error) {
             console.error('Get user detail error:', error);
+            console.error('Error stack:', error.stack);
             res.status(500).json({
                 success: false,
-                message: '获取用户详情失败'
+                message: '获取用户详情失败: ' + error.message
             });
         }
     }

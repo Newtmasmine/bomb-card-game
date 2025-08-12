@@ -2089,34 +2089,57 @@
                 let detailInfo = `=== ${user.username || 'Unknown'} 用户详情 ===\n\n`;
                 detailInfo += `注册时间: ${new Date(user.created_at || user.createdAt).toLocaleString()}\n`;
                 detailInfo += `当前余额: ¥${(user.current_balance || user.balance || 0).toLocaleString()}\n`;
+                detailInfo += `净收益: ¥${(user.total_rewards || 0).toLocaleString()}\n`;
                 detailInfo += `总游戏场次: ${user.games_played || 0}\n`;
                 detailInfo += `总游戏轮次: ${user.rounds_played || 0}\n`;
                 detailInfo += `总翻牌数: ${user.total_flips || 0}\n`;
                 detailInfo += `提前退出次数: ${user.early_exits || 0}\n`;
-                detailInfo += `炸弹触发次数: ${user.bomb_triggers || 0}\n\n`;
+                detailInfo += `炸弹触发次数: ${user.bomb_triggers || 0}\n`;
+                
+                // 计算一些统计数据
+                if (user.rounds_played > 0) {
+                    const earlyExitRate = ((user.early_exits || 0) / user.rounds_played * 100).toFixed(1);
+                    const bombRate = ((user.bomb_triggers || 0) / user.rounds_played * 100).toFixed(1);
+                    detailInfo += `提前退出率: ${earlyExitRate}%\n`;
+                    detailInfo += `炸弹触发率: ${bombRate}%\n`;
+                }
+                
+                detailInfo += `\n`;
                 
                 // 显示游戏会话详情
                 if (sessions && sessions.length > 0) {
-                    detailInfo += `=== 游戏详情 ===\n`;
+                    detailInfo += `=== 游戏历史记录 ===\n`;
+                    let totalBombsEncountered = 0;
+                    
                     sessions.forEach((session, sessionIndex) => {
-                        detailInfo += `\n第${sessionIndex + 1}场游戏 (${new Date(session.start_time || session.startTime).toLocaleString()}):\n`;
+                        detailInfo += `\n第${sessionIndex + 1}场游戏 (${new Date(session.startTime || session.start_time).toLocaleString()}):\n`;
+                        
                         if (session.rounds && session.rounds.length > 0) {
-                            detailInfo += `轮次详情:\n`;
+                            detailInfo += `  共${session.rounds.length}轮游戏:\n`;
                             session.rounds.forEach((round, roundIndex) => {
-                                detailInfo += `  轮次${roundIndex + 1}: 翻牌${round.flipped_cards || round.flippedCards || 0}张`;
-                                if (round.end_reason === 'bomb' || round.endReason === 'bomb') {
-                                    detailInfo += `, 触发炸弹，惩罚¥${round.penalty_amount || round.penaltyAmount || 0}`;
-                                } else if (round.end_reason === 'win' || round.endReason === 'win') {
-                                    detailInfo += `, 完美通关，奖励¥${round.round_bonus || round.roundBonus || 0}`;
-                                } else if (round.end_reason === 'stop' || round.endReason === 'stop') {
-                                    detailInfo += `, 提前结束，获得¥${round.round_bonus || round.roundBonus || 0}`;
+                                detailInfo += `    轮次${roundIndex + 1}: 翻牌${round.flippedCards || round.flipped_cards || 0}张`;
+                                
+                                // 显示轮次结果
+                                if (round.endReason === 'bomb' || round.end_reason === 'bomb') {
+                                    const bombCount = round.bombCount || round.bomb_count || 1;
+                                    const penalty = round.penaltyAmount || round.penalty_amount || 0;
+                                    detailInfo += `, 触发炸弹${bombCount}个，扣除¥${penalty.toLocaleString()}`;
+                                    totalBombsEncountered += bombCount;
+                                } else if (round.endReason === 'win' || round.end_reason === 'win') {
+                                    detailInfo += `, 完美通关，获得¥${(round.roundBonus || round.round_bonus || 0).toLocaleString()}`;
+                                } else if (round.endReason === 'stop' || round.end_reason === 'stop') {
+                                    detailInfo += `, 提前结束，保留¥${(round.roundBonus || round.round_bonus || 0).toLocaleString()}`;
                                 }
                                 detailInfo += `\n`;
                             });
                         } else {
-                            detailInfo += `  暂无轮次数据\n`;
+                            detailInfo += `    暂无轮次数据\n`;
                         }
                     });
+                    
+                    if (totalBombsEncountered > 0) {
+                        detailInfo += `\n总计触发炸弹: ${totalBombsEncountered}个\n`;
+                    }
                 } else {
                     detailInfo += '暂无游戏记录\n';
                 }
@@ -2202,7 +2225,16 @@
                         adminPage.classList.add('active');
                         await updateAdminStats();
                     } else {
-                        // 普通用户先显示游戏规则页面
+                        // 普通用户先获取用户信息，然后显示游戏规则页面
+                        try {
+                            gameData.userInfo = await gameAPI.getUserInfo();
+                            gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
+                            console.log('用户登录后获取余额:', gameData.totalBonus);
+                        } catch (error) {
+                            console.warn('获取用户信息失败:', error);
+                            gameData.totalBonus = 2000; // 使用默认值
+                        }
+                        
                         loginPage.classList.remove('active');
                         rulesPage.classList.add('active');
                     }
@@ -2256,8 +2288,28 @@
             rulesPage.classList.remove('active');
             gamePage.classList.add('active');
             
-            // 先刷新用户余额信息，然后初始化游戏页面
-            await refreshUserInfoBalanceSafe();
+            // 确保在进入游戏前显示正确的余额
+            try {
+                // 如果还没有用户信息，先获取
+                if (!gameData.userInfo) {
+                    gameData.userInfo = await gameAPI.getUserInfo();
+                    gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
+                } else {
+                    // 刷新用户余额信息，确保是最新的
+                    await refreshUserInfoBalanceSafe();
+                }
+                
+                // 立即更新游戏页面的余额显示
+                if (totalBonusEl) {
+                    totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                }
+                
+                console.log('进入游戏页面，当前余额:', gameData.totalBonus);
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+            }
+            
+            // 初始化游戏页面
             await initGame();
         });
         
