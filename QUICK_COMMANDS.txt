@@ -1,0 +1,44 @@
+# 🚀 快速Git命令清单 - 直接复制到PowerShell
+
+## ⚠️ 重要提示
+请**逐条复制**以下命令到PowerShell，不要复制markdown代码块标记（```）
+
+## 第一步：配置Git（首次使用）
+
+git config --global user.name "Newtmasmine"
+
+git config --global user.email "t330016087@mail.uic.edu.cn"
+
+git config --global --list
+
+## 第二步：初始化项目
+
+cd "d:\UIC\FYP\翻卡游戏"
+
+git init
+
+git add .
+
+git commit -m "Initial commit: 炸弹翻牌游戏完整版本"
+
+git branch -M main
+
+## 第三步：连接GitHub仓库
+### ⚠️ 请先在GitHub网站创建仓库，然后将下面的"Newtmasmine"替换为您的GitHub用户名
+
+git remote add origin https://github.com/Newtmasmine/bomb-card-game.git
+
+## 第四步：推送到GitHub
+
+git push -u origin main
+
+## 💡 使用说明：
+1. 打开PowerShell
+2. 逐条复制上面的命令（每次复制一行）
+3. 不要复制任何包含```的行
+4. 在GitHub.com先创建仓库
+5. 推送时使用Personal Access Token作为密码
+
+## 🔧 如果遇到问题：
+- 确保Git已安装：D:\x64\Git\bin\git.exe
+- 如果命令找不到，添加Git到系统PATH环境变量

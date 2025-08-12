@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>炸弹翻牌游戏</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(0, 0, 30, 0.85);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        
+        .page {
+            padding: 30px;
+            display: none;
+        }
+        
+        .active {
+            display: block;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+            font-size: 2.5rem;
+        }
+        
+        /* 登录页面样式 */
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(0, 10, 30, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #1976d2;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, #2196f3, #1976d2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to right, #1976d2, #0d47a1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 游戏页面样式 */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            background: rgba(0, 20, 40, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: rgba(25, 118, 210, 0.3);
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 100px;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 800px;
+            justify-content: center;
+        }
+        
+        .card {
+            aspect-ratio: 2/3;
+            background: linear-gradient(135deg, #1976d2, #0d47a1);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            position: relative;
+            min-height: 100px;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .card.flipped {
+            background: linear-gradient(135deg, #fbc02d, #f57f17);
+            transform: rotateY(180deg);
+        }
+        
+        .card.bomb {
+            background: linear-gradient(135deg, #f44336, #b71c1c);
+        }
+        
+        .card.reward {
+            background: linear-gradient(135deg, #4caf50, #1b5e20);
+        }
+        
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+        }
+        
+        .card-front {
+            background: linear-gradient(135deg, #1976d2, #0d47a1);
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #fbc02d, #f57f17);
+            transform: rotateY(180deg);
+        }
+        
+        .card-value {
+            color: white;
+            font-size: 16px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .btn-game {
+            padding: 14px 30px;
+            font-size: 18px;
+            min-width: 180px;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(to right, #f44336, #d32f2f);
+        }
+        
+        .btn-stop:hover {
+            background: linear-gradient(to right, #d32f2f, #b71c1c);
+        }
+        
+        .message {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            min-height: 40px;
+            color: #ffcc00;
+        }
+        
+        /* 管理员页面样式 */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .admin-stat {
+            background: rgba(25, 118, 210, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .admin-stat h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .admin-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        
+        .admin-label {
+            font-size: 1.1rem;
+            color: #90caf9;
+            margin-top: 10px;
+        }
+        
+        .admin-note {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 10px;
+            color: #ffcc00;
+            font-size: 1.1rem;
+        }
+        
+        /* 特效样式 */
+        .explosion-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 100px;
+            color: #ff4444;
+            z-index: 1000;
+            animation: explode 1.5s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        .coin-effect {
+            position: fixed;
+            font-size: 30px;
+            color: #ffd700;
+            animation: coinFlyToTarget 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        @keyframes coinFlyToTarget {
+            0% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-50px) translateX(0) scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-120px) translateX(var(--target-x, 0)) scale(0.3);
+                opacity: 0;
+            }
+        }
+        
+        .number-roll {
+            animation: rollUp 0.5s ease-out;
+        }
+        
+        .number-fall {
+            animation: rollDown 0.5s ease-out;
+        }
+        
+        @keyframes rollUp {
+            0% {
+                transform: translateY(20px);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes rollDown {
+            0% {
+                transform: translateY(-20px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* 确认对话框样式 */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .dialog-content {
+            background: rgba(0, 20, 40, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .dialog-content h3 {
+            color: #ffcc00;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .dialog-content p {
+            color: #fff;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .dialog-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dialog-btn.confirm {
+            background: linear-gradient(to right, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .dialog-btn.cancel {
+            background: linear-gradient(to right, #2196f3, #1976d2);
+            color: white;
+        }
+        
+        .dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 轮次特效样式 */
+        .round-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: bold;
+            color: #ffcc00;
+            z-index: 1000;
+            animation: roundShow 2s ease-out forwards;
+            pointer-events: none;
+            text-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+        }
+        
+        @keyframes roundShow {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            30% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        /* 用户数据表格样式 */
+        .user-data-section {
+            margin: 30px 0;
+        }
+        
+        .user-data-table {
+            background: rgba(0, 20, 40, 0.7);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .table-header {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 15px 20px;
+            background: rgba(25, 118, 210, 0.3);
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+        
+        .table-body {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .user-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+        
+        .user-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .user-row:last-child {
+            border-bottom: none;
+        }
+        
+        .delete-user-btn {
+            padding: 5px 10px;
+            background: linear-gradient(to right, #f44336, #d32f2f);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-user-btn:hover {
+            background: linear-gradient(to right, #d32f2f, #b71c1c);
+            transform: translateY(-1px);
+        }
+        
+        /* 游戏规则页面样式 */
+        .rules-content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 20, 40, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .rules-section {
+            margin-bottom: 30px;
+        }
+        
+        .rules-section h2 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .rules-section p, .rules-section li {
+            color: #fff;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .rules-section ul {
+            padding-left: 20px;
+        }
+        
+        .highlight {
+            color: #ff4444;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
+        }
+        
+        /* 基金奖励特效样式 */
+        .fund-bonus-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #ffd700, #ff8f00);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            z-index: 2000;
+            text-align: center;
+            animation: fundBonusShow 3s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        .fund-bonus-effect h2 {
+            color: #1a1a1a;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .fund-bonus-effect .amount {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #d32f2f;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        
+        .fund-bonus-effect p {
+            color: #424242;
+            font-size: 1.2rem;
+        }
+        
+        @keyframes fundBonusShow {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            20% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            80% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        /* 惩罚特效样式 */
+        .penalty-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #ff4444, #d32f2f);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(255, 68, 68, 0.8);
+            z-index: 2000;
+            text-align: center;
+            animation: penaltyShow 2.5s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        .penalty-effect h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .penalty-effect .amount {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #ffff8d;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+            margin-bottom: 20px;
+        }
+        
+        .penalty-effect p {
+            color: #ffcccb;
+            font-size: 1.2rem;
+        }
+        
+        @keyframes penaltyShow {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            20% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            80% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: repeat(4, 1fr);
+                max-width: 400px;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .stat-box {
+                min-width: auto;
+            }
+            
+            .admin-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .btn-game {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .table-header, .user-row {
+                grid-template-columns: 2fr 1fr 1fr 1fr;
+                font-size: 12px;
+            }
+            
+            .table-header div:nth-child(n+5),
+            .user-row div:nth-child(n+5) {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-board {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+            }
+            
+            .stats {
+                gap: 8px;
+            }
+            
+            .stat-box {
+                padding: 10px 12px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .card {
+                min-height: 60px;
+                font-size: 1rem;
+            }
+            
+            .card-value {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 登录页面 -->
+        <div id="login-page" class="page active">
+            <h1>炸弹翻牌游戏</h1>
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="请输入用户名" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="请输入密码">
+                </div>
+                <div class="form-group" id="confirm-password-group" style="display: none;">
+                    <label for="confirm-password">确认密码</label>
+                    <input type="password" id="confirm-password" placeholder="请再次输入密码">
+                </div>
+                <div id="error-message" style="color: #ff4444; text-align: center; margin: 10px 0; min-height: 20px;"></div>
+                <button id="login-btn" class="btn">登录游戏</button>
+                <button id="register-btn" class="btn" style="background: linear-gradient(to right, #4caf50, #388e3c); margin-top: 15px;">
+                    注册账号
+                </button>
+            </div>
+        </div>
+        
+        <!-- 游戏规则介绍页面 -->
+        <div id="rules-page" class="page">
+            <h1>游戏规则介绍</h1>
+            <div class="rules-content">
+                <div class="rules-section">
+                    <h2>🎯 游戏目标</h2>
+                    <p>在翻牌游戏中获得尽可能多的奖金，同时避免触碰炸弹。</p>
+                </div>
+                
+                <div class="rules-section">
+                    <h2>🃏 游戏规则</h2>
+                    <ul>
+                        <li><strong>卡片设置：</strong>每轮固定有16张卡片，包含奖励卡和炸弹卡</li>
+                        <li><strong>奖励卡：</strong>金额从¥100到¥10,000不等</li>
+                        <li><strong>游戏费用：</strong>每轮游戏需要支付¥200</li>
+                        <li><strong>奖金累积：</strong>每轮成功获得的奖金会累加到总奖金中</li>
+                    </ul>
+                </div>
+                
+                <div class="rules-section">
+                    <h2>💣 炸弹机制</h2>
+                    <ul>
+                        <li>触碰到炸弹将<span class="highlight">随机扣除¥100-3000</span></li>
+                        <li><span class="highlight">先扣除本轮奖金，不足时再扣除余额</span></li>
+                        <li>炸弹数量每轮随机</li>
+                        <li>可以随时选择"结束本轮"来保护已获得的奖金</li>
+                    </ul>
+                </div>
+                
+                <div class="rules-section">
+                    <h2>💰 奖金说明</h2>
+                    <ul>
+                        <li><strong>首次注册奖励：</strong>新用户获得¥2,000起始基金</li>
+                        <li><strong>奖金保护：</strong>主动结束本轮可保留当轮奖金</li>
+                        <li><strong>游戏启动条件：</strong><span class="highlight">需要花费¥200开启新游戏</span></li>
+                        <li><strong>特殊奖励：</strong><span class="highlight">总奖金累计¥30,000可获得一份精美礼品！</span></li>
+                    </ul>
+                </div>
+                
+                <div class="rules-section">
+                    <h2>🎮 操作说明</h2>
+                    <ul>
+                        <li>点击卡片进行翻牌</li>
+                        <li>随时可以点击"结束本轮"以结束游戏</li>
+                        <li>16张卡牌或奖励卡被翻完后自动进入下一轮</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="exit-to-login-btn" class="btn btn-game" style="background: linear-gradient(to right, #9e9e9e, #616161);">
+                    退出游戏
+                </button>
+                <button id="enter-game-btn" class="btn btn-game" style="background: linear-gradient(to right, #4caf50, #388e3c);">
+                    进入游戏
+                </button>
+            </div>
+        </div>
+        
+        <!-- 游戏页面 -->
+        <div id="game-page" class="page">
+            <h1>炸弹翻牌挑战</h1>
+            <div class="game-header">
+                <div class="stats">
+                    <div class="stat-box">
+                        <div>当前余额</div>
+                        <div id="total-bonus" class="stat-value">¥0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>本轮奖金</div>
+                        <div id="current-bonus" class="stat-value">¥0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>已翻牌数</div>
+                        <div id="flipped-count" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div>剩余牌数</div>
+                        <div id="remaining-cards" class="stat-value">16</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="message" id="game-message">点击卡片开始游戏！</div>
+            
+            <div class="game-board" id="game-board">
+                <!-- 卡片将通过JS动态生成 -->
+            </div>
+            
+            <div class="controls">
+                <button id="start-game-btn" class="btn btn-game" style="background: linear-gradient(to right, #4caf50, #388e3c);">开始游戏</button>
+                <button id="stop-round-btn" class="btn btn-game btn-stop" style="display: none;">结束本轮</button>
+                <button id="exit-game-btn" class="btn btn-game" style="background: linear-gradient(to right, #9e9e9e, #616161);">退出游戏</button>
+            </div>
+        </div>
+        
+        <!-- 管理员页面 -->
+        <div id="admin-page" class="page">
+            <h1>游戏数据统计</h1>
+            
+            <div class="admin-note">
+                此页面仅管理员可见，显示游戏全局统计数据
+            </div>
+            
+            <div class="admin-stats">
+                <div class="admin-stat">
+                    <h3>翻牌总数</h3>
+                    <div id="total-flips" class="admin-value">0</div>
+                    <div class="admin-label">所有玩家翻牌总次数</div>
+                </div>
+                
+                <div class="admin-stat">
+                    <h3>提前退出率</h3>
+                    <div id="early-exit-rate" class="admin-value">0%</div>
+                    <div class="admin-label">玩家主动停止游戏的比例</div>
+                </div>
+                
+                <div class="admin-stat">
+                    <h3>收益偏离度</h3>
+                    <div id="profit-deviation" class="admin-value">0.00</div>
+                    <div class="admin-label">实际收益与期望收益的偏差</div>
+                </div>
+                
+                <div class="admin-stat">
+                    <h3>风险估计误差</h3>
+                    <div id="risk-error" class="admin-value">0.00</div>
+                    <div class="admin-label">玩家风险预测的误差率</div>
+                </div>
+                
+                <div class="admin-stat">
+                    <h3>炸弹触发率</h3>
+                    <div id="bomb-rate" class="admin-value">0%</div>
+                    <div class="admin-label">炸弹被翻出的概率</div>
+                </div>
+                
+                <div class="admin-stat">
+                    <h3>游戏总场次</h3>
+                    <div id="total-games" class="admin-value">0</div>
+                    <div class="admin-label">已进行的游戏总次数</div>
+                </div>
+            </div>
+            
+            <!-- 用户详细数据表格 -->
+            <div class="user-data-section">
+                <h2 style="color: #4fc3f7; margin: 30px 0 20px 0;">用户详细数据</h2>
+                <div class="user-data-table">
+                    <div class="table-header">
+                        <div>用户名</div>
+                        <div>翻牌总数</div>
+                        <div>提前退出率</div>
+                        <div>收益偏离度</div>
+                        <div>风险估计误差</div>
+                        <div>炸弹触发率</div>
+                        <div>操作</div>
+                    </div>
+                    <div id="user-data-list" class="table-body">
+                        <!-- 用户数据将动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="clear-all-data-btn" class="btn btn-game" style="background: linear-gradient(to right, #ff5722, #d84315);">
+                    清空所有数据
+                </button>
+                <button id="logout-btn" class="btn btn-game" style="background: linear-gradient(to right, #f44336, #d32f2f);">
+                    退出登录
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div id="confirm-dialog" class="confirm-dialog" style="display: none;">
+        <div class="dialog-content">
+            <h3>确认退出本轮？</h3>
+            <p id="remaining-reward-text">还有XXX元奖励未翻出</p>
+            <div class="dialog-buttons">
+                <button id="dialog-cancel" class="dialog-btn cancel">继续游戏</button>
+                <button id="dialog-confirm" class="dialog-btn confirm">确定退出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 付费确认对话框 -->
+    <div id="payment-dialog" class="confirm-dialog" style="display: none;">
+        <div class="dialog-content">
+            <h3>开始新游戏</h3>
+            <p id="payment-text">本轮游戏需要支付¥200，确定开始吗？</p>
+            <p style="color: #4fc3f7; font-size: 0.9rem; margin-top: 10px;">当前余额：<span id="current-balance">¥0</span></p>
+            <div class="dialog-buttons">
+                <button id="payment-cancel" class="dialog-btn cancel">取消</button>
+                <button id="payment-confirm" class="dialog-btn confirm">确定支付</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API配置 - 根据环境自动切换
+        const getAPIBaseURL = () => {
+            // 如果是localhost，使用本地开发环境
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                return 'http://localhost:3000/api';
+            }
+            // 生产环境 - 请部署后替换为实际的后端URL
+            // 例如: 'https://your-app-name.up.railway.app/api'
+            return 'https://your-backend-url.up.railway.app/api';
+        };
+        
+        const API_BASE_URL = getAPIBaseURL();
+        
+        // API管理类
+        class GameAPI {
+            constructor() {
+                this.token = localStorage.getItem('authToken');
+                this.baseURL = API_BASE_URL;
+            }
+            
+            // 设置认证token
+            setToken(token) {
+                this.token = token;
+                localStorage.setItem('authToken', token);
+            }
+            
+            // 清除token
+            clearToken() {
+                this.token = null;
+                localStorage.removeItem('authToken');
+            }
+            
+            // 通用请求方法
+            async request(endpoint, options = {}) {
+                const url = `${this.baseURL}${endpoint}`;
+                const config = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                };
+                
+                // 添加认证头
+                if (this.token) {
+                    config.headers.Authorization = `Bearer ${this.token}`;
+                }
+                
+                try {
+                    const response = await fetch(url, config);
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || '请求失败');
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    console.error('API请求错误:', error);
+                    throw error;
+                }
+            }
+            
+            // 用户注册
+            async register(username, password) {
+                return this.request('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+            }
+            
+            // 用户登录
+            async login(username, password) {
+                return this.request('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+            }
+            
+            // 管理员登录
+            async adminLogin(username, password) {
+                return this.request('/auth/admin/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+            }
+            
+            // 获取用户信息
+            async getUserInfo() {
+                return this.request('/game/user/info');
+            }
+            
+            // 更新用户余额
+            async updateBalance(balance) {
+                return this.request('/game/user/balance', {
+                    method: 'PUT',
+                    body: JSON.stringify({ balance })
+                });
+            }
+            
+            // 记录游戏会话
+            async recordSession(sessionData) {
+                return this.request('/game/session', {
+                    method: 'POST',
+                    body: JSON.stringify(sessionData)
+                });
+            }
+            
+            // 记录游戏轮次
+            async recordRound(sessionId, roundData) {
+                return this.request(`/game/session/${sessionId}/round`, {
+                    method: 'POST',
+                    body: JSON.stringify(roundData)
+                });
+            }
+            
+            // 记录风险估计数据
+            async recordRiskEstimation(data) {
+                return this.request('/game/risk-estimation', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            }
+            
+            // 获取管理员统计数据
+            async getAdminStats() {
+                return this.request('/admin/stats');
+            }
+            
+            // 获取所有用户数据
+            async getAllUsers() {
+                return this.request('/admin/users');
+            }
+            
+            // 获取用户详情
+            async getUserDetail(userId) {
+                return this.request(`/admin/users/${userId}`);
+            }
+            
+            // 删除用户
+            async deleteUser(userId) {
+                return this.request(`/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+            }
+            
+            // 清空所有数据
+            async clearAllData() {
+                return this.request('/admin/data/clear', {
+                    method: 'DELETE'
+                });
+            }
+        }
+        
+        // 创建API实例
+        const gameAPI = new GameAPI();
+        
+        // 游戏数据
+        const gameData = {
+            // 卡片配置
+            cards: [],
+            rewards: [100, 200, 300, 500, 800, 1000, 1500, 2000, 2500, 3000, 5000, 10000],
+            bombCount: 0, // 将在游戏开始时随机生成
+            
+            // 游戏状态
+            totalBonus: 0,
+            currentRoundBonus: 0,
+            flippedCount: 0,
+            gameActive: false,
+            roundEnded: false,
+            currentPlayerSession: null,
+            currentSessionId: null, // 当前游戏会话ID
+            currentUser: null,
+            isRegistering: false,
+            roundCost: 200, // 每轮游戏费用
+            
+            // 用户信息（从后端获取）
+            userInfo: null
+        };
+        
+        // DOM元素
+        const loginPage = document.getElementById('login-page');
+        const rulesPage = document.getElementById('rules-page');
+        const gamePage = document.getElementById('game-page');
+        const adminPage = document.getElementById('admin-page');
+        const gameBoard = document.getElementById('game-board');
+        const totalBonusEl = document.getElementById('total-bonus');
+        const currentBonusEl = document.getElementById('current-bonus');
+        const flippedCountEl = document.getElementById('flipped-count');
+        const remainingCardsEl = document.getElementById('remaining-cards');
+        const gameMessageEl = document.getElementById('game-message');
+        
+        // 管理员数据元素
+        const totalFlipsEl = document.getElementById('total-flips');
+        const earlyExitRateEl = document.getElementById('early-exit-rate');
+        const profitDeviationEl = document.getElementById('profit-deviation');
+        const riskErrorEl = document.getElementById('risk-error');
+        const bombRateEl = document.getElementById('bomb-rate');
+        const totalGamesEl = document.getElementById('total-games');
+        
+        // 初始化游戏
+        async function initGame() {
+            try {
+                // 获取用户信息
+                gameData.userInfo = await gameAPI.getUserInfo();
+                gameData.totalBonus = gameData.userInfo.balance;
+                
+                // 创建新的游戏会话
+                const sessionData = {
+                    startTime: new Date().toISOString()
+                };
+                
+                const sessionResponse = await gameAPI.recordSession(sessionData);
+                gameData.currentSessionId = sessionResponse.data.sessionId;
+                
+                gameData.currentPlayerSession = {
+                    sessionId: gameData.currentSessionId,
+                    username: gameData.currentUser,
+                    startTime: Date.now(),
+                    rounds: [],
+                    totalFlips: 0,
+                    totalBombHits: 0,
+                    totalRewards: gameData.totalBonus
+                };
+                
+                // 检查是否为新用户（余额为2000且没有游戏记录）
+                if (gameData.userInfo.balance === 2000 && gameData.userInfo.gamesPlayed === 0) {
+                    setTimeout(() => {
+                        showNewUserBonusDialog();
+                    }, 500);
+                } else {
+                    showGameReadyState();
+                }
+            } catch (error) {
+                console.error('初始化游戏失败:', error);
+                alert('初始化游戏失败，请重试');
+                showGameReadyState();
+            }
+        }
+        
+        // 显示游戏准备状态
+        function showGameReadyState() {
+            // 使用从后端获取的用户余额
+            if (gameData.userInfo) {
+                gameData.totalBonus = gameData.userInfo.balance;
+            }
+            
+            // 更新余额显示
+            totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+            currentBonusEl.textContent = '¥0';
+            flippedCountEl.textContent = '0';
+            remainingCardsEl.textContent = '16';
+            
+            // 显示开始游戏按钮，隐藏结束本轮按钮
+            document.getElementById('start-game-btn').style.display = 'inline-block';
+            document.getElementById('stop-round-btn').style.display = 'none';
+            
+            // 清空游戏区域
+            gameBoard.innerHTML = '';
+            gameMessageEl.textContent = '点击"开始游戏"开始新的一轮！';
+            gameMessageEl.style.color = '#ffcc00';
+            
+            // 重置游戏数据
+            gameData.gameActive = false;
+            gameData.roundEnded = false;
+            gameData.flippedCount = 0;
+            gameData.currentRoundBonus = 0;
+        }
+        
+        // 开始新一轮游戏
+        async function startNewRound() {
+            try {
+                // 扣除费用并更新后端
+                gameData.totalBonus -= gameData.roundCost;
+                await gameAPI.updateBalance(gameData.totalBonus);
+                
+                gameData.currentRoundBonus = 0;
+                gameData.flippedCount = 0;
+                gameData.gameActive = true;
+                gameData.roundEnded = false;
+                
+                // 更新UI
+                totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                currentBonusEl.textContent = '¥0';
+                flippedCountEl.textContent = '0';
+                remainingCardsEl.textContent = '16';
+                gameMessageEl.textContent = '点击卡片开始翻牌！';
+                gameMessageEl.style.color = '#ffcc00';
+                
+                // 显示结束本轮按钮，隐藏开始游戏按钮
+                document.getElementById('start-game-btn').style.display = 'none';
+                document.getElementById('stop-round-btn').style.display = 'inline-block';
+                
+                // 创建卡片
+                createCards();
+            } catch (error) {
+                console.error('开始游戏失败:', error);
+                alert('开始游戏失败，请重试');
+            }
+        }
+        
+        // 创建卡片
+        function createCards() {
+            gameBoard.innerHTML = '';
+            gameData.cards = [];
+            
+            // 随机生成炸弹数量（3-10个）
+            gameData.bombCount = Math.floor(Math.random() * 7) + 3;
+            
+            // 创建炸弹卡片
+            for (let i = 0; i < gameData.bombCount; i++) {
+                gameData.cards.push({
+                    type: 'bomb',
+                    value: 0,
+                    flipped: false
+                });
+            }
+            
+            // 创建奖励卡片 - 确保总共16张卡片，高金额奖励概率更小
+            const rewardCardCount = 16 - gameData.bombCount;
+            
+            // 加权随机选择奖励卡片，¥100占61%概率，其余按金额递减
+            const rewardWeights = {
+                100: 161,   // 61% 概率
+                200: 7,   // 剩余39%按递减分配
+                300: 6,
+                500: 5,
+                800: 5,
+                1000: 4,
+                1500: 3,
+                2000: 3,
+                2500: 2,
+                3000: 2,
+                5000: 1,
+                10000: 1   // 最低权重 
+            };
+            
+            // 创建加权奖励池
+            const weightedRewards = [];
+            Object.keys(rewardWeights).forEach(reward => {
+                const weight = rewardWeights[reward];
+                for (let i = 0; i < weight; i++) {
+                    weightedRewards.push(parseInt(reward));
+                }
+            });
+            
+            // 随机选择奖励卡片
+            for (let i = 0; i < rewardCardCount; i++) {
+                const randomIndex = Math.floor(Math.random() * weightedRewards.length);
+                const selectedReward = weightedRewards[randomIndex];
+                gameData.cards.push({
+                    type: 'reward',
+                    value: selectedReward,
+                    flipped: false
+                });
+            }
+            
+            // 确保正好16张卡片
+            gameData.cards = gameData.cards.slice(0, 16);
+            
+            // 洗牌
+            shuffleCards();
+            
+            // 渲染卡片
+            gameData.cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.innerHTML = `
+                    <div class="card-front">?</div>
+                    <div class="card-back">
+                        <div class="card-value">${card.type === 'reward' ? '¥' + card.value : '💣'}</div>
+                    </div>
+                `;
+                
+                cardEl.addEventListener('click', () => flipCard(index));
+                gameBoard.appendChild(cardEl);
+            });
+            
+            // 更新剩余卡片数显示
+            remainingCardsEl.textContent = '16';
+        }
+        
+        // 洗牌算法
+        function shuffleCards() {
+            for (let i = gameData.cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameData.cards[i], gameData.cards[j]] = [gameData.cards[j], gameData.cards[i]];
+            }
+        }
+        
+        // 翻牌
+        async function flipCard(index) {
+            if (!gameData.gameActive || gameData.roundEnded || gameData.cards[index].flipped) return;
+            
+            const card = gameData.cards[index];
+            card.flipped = true;
+            gameData.flippedCount++;
+            
+            // 更新游戏会话数据
+            gameData.currentPlayerSession.totalFlips++;
+            
+            // 更新UI
+            flippedCountEl.textContent = gameData.flippedCount;
+            remainingCardsEl.textContent = 16 - gameData.flippedCount;
+            
+            const cardEl = gameBoard.children[index];
+            cardEl.classList.add('flipped');
+            
+            // 处理卡片类型
+            if (card.type === 'reward') {
+                cardEl.classList.add('reward');
+                gameData.currentRoundBonus += card.value;
+                
+                // 显示金币特效
+                showCoinEffect(cardEl);
+                
+                // 延迟更新金额以配合特效
+                setTimeout(() => {
+                    animateNumberRoll(currentBonusEl, `¥${gameData.currentRoundBonus.toLocaleString()}`, true);
+                }, 300);
+                
+                gameMessageEl.textContent = `恭喜！获得 ¥${card.value.toLocaleString()} 奖励！`;
+                gameMessageEl.style.color = '#4caf50';
+                
+                // 检查是否所有奖励卡都已翻开
+                const allRewardsFlipped = gameData.cards.filter(c => 
+                    c.type === 'reward' && !c.flipped).length === 0;
+                
+                if (allRewardsFlipped) {
+                    setTimeout(() => {
+                        endRound('win');
+                    }, 800);
+                }
+            } else {
+                cardEl.classList.add('bomb');
+                
+                // 更新炸弹触发统计
+                gameData.currentPlayerSession.totalBombHits++;
+                
+                // 显示爆炸特效
+                showExplosionEffect();
+                
+                // 生成随机惩罚金额（100-3000）
+                const penaltyAmount = Math.floor(Math.random() * 2901) + 100;
+                
+                // 先扣除本轮奖金，不足时再扣除余额（允许余额为负）
+                let actualPenalty = penaltyAmount;
+                let deductedFromRound = 0;
+                let deductedFromBalance = 0;
+                
+                if (gameData.currentRoundBonus >= penaltyAmount) {
+                    // 本轮奖金足够扣除全部惩罚金额
+                    gameData.currentRoundBonus -= penaltyAmount;
+                    deductedFromRound = penaltyAmount;
+                } else {
+                    // 本轮奖金不足，先扣完本轮奖金，剩余部分从余额扣除
+                    deductedFromRound = gameData.currentRoundBonus;
+                    const remainingPenalty = penaltyAmount - gameData.currentRoundBonus;
+                    gameData.currentRoundBonus = 0;
+                    
+                    // 从余额扣除剩余部分（允许余额变为负数）
+                    gameData.totalBonus -= remainingPenalty;
+                    deductedFromBalance = remainingPenalty;
+                }
+                
+                // 异步更新后端余额
+                try {
+                    await gameAPI.updateBalance(gameData.totalBonus);
+                } catch (error) {
+                    console.error('更新余额失败:', error);
+                }
+                
+                setTimeout(() => {
+                    // 显示惩罚特效
+                    showPenaltyEffect(actualPenalty);
+                    
+                    // 更新显示
+                    animateNumberRoll(currentBonusEl, `¥${gameData.currentRoundBonus.toLocaleString()}`, false);
+                    animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, false);
+                    
+                    // 显示详细的扣除信息
+                    if (deductedFromBalance > 0) {
+                        gameMessageEl.textContent = `💣 炸弹！本轮奖金扣除¥${deductedFromRound.toLocaleString()}，余额扣除¥${deductedFromBalance.toLocaleString()}！`;
+                    } else {
+                        gameMessageEl.textContent = `💣 炸弹！扣除本轮奖金¥${actualPenalty.toLocaleString()}，继续翻牌！`;
+                    }
+                    gameMessageEl.style.color = '#f44336';
+                }, 500);
+            }
+            
+            // 检查是否所有卡片都已翻开
+            const allCardsFlipped = gameData.cards.filter(c => !c.flipped).length === 0;
+            
+            if (allCardsFlipped) {
+                setTimeout(async () => {
+                    alert('16张卡牌已全部翻开，游戏结束！');
+                    
+                    gameMessageEl.textContent = `🎊 16张卡牌已全部翻开！获得本轮奖金：¥${gameData.currentRoundBonus.toLocaleString()}`;
+                    gameMessageEl.style.color = '#4caf50';
+                    
+                    // 添加本轮奖金到总奖金
+                    gameData.totalBonus += gameData.currentRoundBonus;
+                    animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                    
+                    try {
+                        // 更新后端余额
+                        await gameAPI.updateBalance(gameData.totalBonus);
+                        
+                        // 记录轮次数据
+                        await recordRoundData('win');
+                    } catch (error) {
+                        console.error('保存游戏数据失败:', error);
+                    }
+                    
+                    // 检查是否达到礼品门槛
+                    if (gameData.totalBonus >= 30000) {
+                        setTimeout(() => {
+                            alert('🎉 恭喜！您的总奖金已达到¥30,000，可以获得一份精美礼品！');
+                        }, 1000);
+                    }
+                    
+                    // 延迟后返回开始游戏界面
+                    setTimeout(() => {
+                        showGameReadyState();
+                    }, 2000);
+                }, 1000);
+            }
+            
+            // 记录风险估计数据
+            await recordRiskEstimation();
+        }
+        
+        // 记录轮次数据
+        async function recordRoundData(endReason, penaltyAmount = 0) {
+            try {
+                const roundData = {
+                    flippedCards: gameData.flippedCount,
+                    roundBonus: gameData.currentRoundBonus,
+                    endReason: endReason,
+                    penaltyAmount: penaltyAmount,
+                    bombCount: gameData.bombCount,
+                    totalBonusAfter: gameData.totalBonus
+                };
+                
+                await gameAPI.recordRound(gameData.currentSessionId, roundData);
+            } catch (error) {
+                console.error('记录轮次数据失败:', error);
+            }
+        }
+        
+        // 记录风险估计数据
+        async function recordRiskEstimation() {
+            const remainingCards = gameData.cards.filter(c => !c.flipped);
+            const remainingBombs = remainingCards.filter(c => c.type === 'bomb').length;
+            
+            if (remainingCards.length > 0) {
+                const bombProbability = remainingBombs / remainingCards.length;
+                
+                try {
+                    await gameAPI.recordRiskEstimation({
+                        actualBombProb: bombProbability,
+                        flippedCount: gameData.flippedCount,
+                        sessionId: gameData.currentSessionId
+                    });
+                } catch (error) {
+                    console.error('记录风险估计数据失败:', error);
+                }
+            }
+        }
+        
+        // 特效函数
+        function showExplosionEffect() {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion-effect';
+            explosion.innerHTML = '💥';
+            document.body.appendChild(explosion);
+            
+            setTimeout(() => {
+                document.body.removeChild(explosion);
+            }, 1500);
+        }
+        
+        function showCoinEffect(startElement) {
+            const coin = document.createElement('div');
+            coin.className = 'coin-effect';
+            coin.innerHTML = '🪙';
+            
+            const startRect = startElement.getBoundingClientRect();
+            const targetRect = currentBonusEl.getBoundingClientRect();
+            
+            // 计算目标位置的偏移
+            const targetX = targetRect.left - startRect.left;
+            coin.style.setProperty('--target-x', targetX + 'px');
+            
+            coin.style.left = startRect.left + startRect.width / 2 + 'px';
+            coin.style.top = startRect.top + startRect.height / 2 + 'px';
+            
+            document.body.appendChild(coin);
+            
+            setTimeout(() => {
+                if (document.body.contains(coin)) {
+                    document.body.removeChild(coin);
+                }
+            }, 1000);
+        }
+        
+        function animateNumberRoll(element, newValue, isIncrease = true) {
+            element.classList.add(isIncrease ? 'number-roll' : 'number-fall');
+            element.textContent = newValue;
+            
+            setTimeout(() => {
+                element.classList.remove('number-roll', 'number-fall');
+            }, 500);
+        }
+        
+        function showConfirmDialog() {
+            const remainingRewards = gameData.cards.filter(c => 
+                c.type === 'reward' && !c.flipped);
+            const totalRemaining = remainingRewards.reduce((sum, card) => sum + card.value, 0);
+            
+            document.getElementById('remaining-reward-text').textContent = 
+                `还有¥${totalRemaining.toLocaleString()}奖励未翻出`;
+            document.getElementById('confirm-dialog').style.display = 'flex';
+        }
+        
+        function hideConfirmDialog() {
+            document.getElementById('confirm-dialog').style.display = 'none';
+        }
+        
+        function showPaymentDialog() {
+            document.getElementById('current-balance').textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+            
+            if (gameData.totalBonus < 200) {
+                document.getElementById('payment-text').textContent = '余额不足，需要至少¥200才能开始游戏！';
+                document.getElementById('payment-confirm').style.display = 'none';
+            } else {
+                document.getElementById('payment-text').textContent = `本轮游戏需要支付¥${gameData.roundCost}，确定开始吗？`;
+                document.getElementById('payment-confirm').style.display = 'inline-block';
+            }
+            
+            document.getElementById('payment-dialog').style.display = 'flex';
+        }
+        
+        function hidePaymentDialog() {
+            document.getElementById('payment-dialog').style.display = 'none';
+            document.getElementById('payment-confirm').style.display = 'inline-block';
+        }
+        
+        // 新用户奖金到账弹窗
+        function showNewUserBonusDialog() {
+            alert(`🎉 恭喜！新用户注册奖励已到账！\n\n💰 奖励金额：¥2,000\n💳 当前余额：¥2,000\n\n现在可以开始游戏了！每轮游戏费用¥200`);
+            
+            // 显示基金奖励特效
+            showFundBonusEffect();
+            
+            // 显示游戏准备状态
+            setTimeout(() => {
+                showGameReadyState();
+            }, 3000);
+        }
+        
+        function showFundBonusEffect() {
+            const fundEffect = document.createElement('div');
+            fundEffect.className = 'fund-bonus-effect';
+            fundEffect.innerHTML = `
+                <h2>🎉 首次注册奖励 🎉</h2>
+                <div class="amount">¥2,000</div>
+                <p>恭喜获得新手基金！</p>
+            `;
+            document.body.appendChild(fundEffect);
+            
+            setTimeout(() => {
+                if (document.body.contains(fundEffect)) {
+                    document.body.removeChild(fundEffect);
+                }
+            }, 3000);
+        }
+        
+        function showPenaltyEffect(penaltyAmount) {
+            const penaltyEffect = document.createElement('div');
+            penaltyEffect.className = 'penalty-effect';
+            penaltyEffect.innerHTML = `
+                <h2>💣 炸弹惩罚 💣</h2>
+                <div class="amount">-¥${penaltyAmount.toLocaleString()}</div>
+                <p>扣除惩罚金额</p>
+            `;
+            document.body.appendChild(penaltyEffect);
+            
+            setTimeout(() => {
+                if (document.body.contains(penaltyEffect)) {
+                    document.body.removeChild(penaltyEffect);
+                }
+            }, 2500);
+        }
+        
+        
+        // 退出游戏
+        function exitToLogin() {
+            if (confirm('确定要退出游戏并返回登录页面吗？未获得的奖金将会丢失！')) {
+                // 记录提前退出（通过API记录轮次数据）
+                if (gameData.gameActive && gameData.currentSessionId) {
+                    recordRoundData('early_exit').catch(console.error);
+                }
+                
+                // 清除认证token
+                gameAPI.clearToken();
+                
+                // 返回登录页面
+                gamePage.classList.remove('active');
+                loginPage.classList.add('active');
+                
+                // 清除输入框
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('error-message').textContent = '';
+            }
+        }
+        
+        async function registerUser(username, password) {
+            try {
+                const result = await gameAPI.register(username, password);
+                return { success: true, message: '注册成功', isNewUser: true };
+            } catch (error) {
+                if (error.message.includes('已存在')) {
+                    return { success: false, message: '用户名已存在' };
+                }
+                return { success: false, message: error.message || '注册失败' };
+            }
+        }
+        
+        async function loginUser(username, password) {
+            try {
+                if (username === 'admin' && password === 'admin001') {
+                    const result = await gameAPI.adminLogin(username, password);
+                    gameAPI.setToken(result.token);
+                    return { success: true, isAdmin: true };
+                } else {
+                    const result = await gameAPI.login(username, password);
+                    gameAPI.setToken(result.token);
+                    gameData.currentUser = username;
+                    return { success: true, isAdmin: false };
+                }
+            } catch (error) {
+                return { success: false, message: error.message || '登录失败' };
+            }
+        }
+        
+        // 结束当前轮
+        async function endRound(reason, penaltyAmount = 0) {
+            gameData.gameActive = false;
+            gameData.roundEnded = true;
+            
+            if (reason === 'bomb') {
+                // 炸弹结束，本轮奖金已在flipCard中清零，余额已扣除
+                gameMessageEl.textContent = `💣 炸弹！扣除惩罚金额¥${penaltyAmount.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
+                gameMessageEl.style.color = '#f44336';
+                
+                // 金额下降动画
+                animateNumberRoll(currentBonusEl, '¥0', false);
+                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, false);
+            } else if (reason === 'win') {
+                gameData.totalBonus += gameData.currentRoundBonus;
+                gameMessageEl.textContent = `🎉 完美！获得本轮所有奖励！当前余额：¥${gameData.totalBonus.toLocaleString()}`;
+                gameMessageEl.style.color = '#4caf50';
+                
+                // 金额上升动画
+                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                
+                // 更新后端余额
+                try {
+                    await gameAPI.updateBalance(gameData.totalBonus);
+                } catch (error) {
+                    console.error('更新余额失败:', error);
+                }
+            } else if (reason === 'stop') {
+                gameData.totalBonus += gameData.currentRoundBonus;
+                gameMessageEl.textContent = `🛑 本轮结束！获得奖金：¥${gameData.currentRoundBonus.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
+                gameMessageEl.style.color = '#ff9800';
+                
+                // 金额上升动画
+                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                
+                // 更新后端余额
+                try {
+                    await gameAPI.updateBalance(gameData.totalBonus);
+                } catch (error) {
+                    console.error('更新余额失败:', error);
+                }
+            }
+            
+            // 检查是否达到礼品门槛
+            if (gameData.totalBonus >= 30000) {
+                setTimeout(() => {
+                    alert('🎉 恭喜！您的总奖金已达到¥30,000，可以获得一份精美礼品！');
+                }, 1000);
+            }
+            
+            // 记录轮次数据
+            try {
+                await recordRoundData(reason, penaltyAmount);
+            } catch (error) {
+                console.error('记录轮次数据失败:', error);
+            }
+            
+            // 延迟后返回开始游戏界面
+            setTimeout(() => {
+                showGameReadyState();
+            }, 2000);
+        }
+        
+        // 开始下一轮
+        function nextRound() {
+            showPaymentDialog();
+        }
+        
+        // 添加键盘事件支持（可选）
+        document.addEventListener('keydown', (event) => {
+            // ESC键关闭确认对话框
+            if (event.key === 'Escape') {
+                hideConfirmDialog();
+            }
+        });
+        
+        // 更新管理员统计数据
+        async function updateAdminStats() {
+            try {
+                const stats = await gameAPI.getAdminStats();
+                
+                // 更新统计显示
+                totalFlipsEl.textContent = stats.totalFlips.toLocaleString();
+                totalGamesEl.textContent = stats.totalGames.toLocaleString();
+                earlyExitRateEl.textContent = `${stats.earlyExitRate.toFixed(1)}%`;
+                bombRateEl.textContent = `${stats.bombTriggerRate.toFixed(1)}%`;
+                profitDeviationEl.textContent = stats.profitDeviation.toFixed(2);
+                riskErrorEl.textContent = stats.riskError.toFixed(2);
+                
+                // 更新用户详细数据
+                await updateUserDataTable();
+            } catch (error) {
+                console.error('获取管理员统计数据失败:', error);
+                alert('获取统计数据失败，请重试');
+            }
+        }
+        
+        async function updateUserDataTable() {
+            try {
+                const users = await gameAPI.getAllUsers();
+                const userDataList = document.getElementById('user-data-list');
+                userDataList.innerHTML = '';
+                
+                users.forEach(user => {
+                    const userRow = document.createElement('div');
+                    userRow.className = 'user-row';
+                    
+                    userRow.innerHTML = `
+                        <div>${user.username}</div>
+                        <div>${user.totalFlips || 0}</div>
+                        <div>${user.earlyExitRate.toFixed(1)}%</div>
+                        <div>${user.profitDeviation.toFixed(2)}</div>
+                        <div>${user.riskError.toFixed(2)}</div>
+                        <div>${user.bombTriggerRate.toFixed(1)}%</div>
+                        <div>
+                            <button class="btn-small" onclick="viewUserDetail(${user.id})">详情</button>
+                            <button class="btn-small btn-danger" onclick="deleteUser(${user.id})">删除</button>
+                        </div>
+                    `;
+                    
+                    userDataList.appendChild(userRow);
+                });
+            } catch (error) {
+                console.error('获取用户数据失败:', error);
+            }
+        }
+        
+        async function deleteUser(userId) {
+            if (confirm(`确定要删除该用户的所有数据吗？`)) {
+                try {
+                    await gameAPI.deleteUser(userId);
+                    await updateUserDataTable();
+                } catch (error) {
+                    console.error('删除用户失败:', error);
+                    alert('删除用户失败，请重试');
+                }
+            }
+        }
+        
+        // 查看用户详情
+        async function viewUserDetail(userId) {
+            try {
+                const userDetail = await gameAPI.getUserDetail(userId);
+                
+                let detailInfo = `=== ${userDetail.username} 用户详情 ===\n\n`;
+                detailInfo += `注册时间: ${new Date(userDetail.createdAt).toLocaleString()}\n`;
+                detailInfo += `当前余额: ¥${userDetail.balance.toLocaleString()}\n`;
+                detailInfo += `总游戏场次: ${userDetail.totalGames}\n`;
+                detailInfo += `总游戏轮次: ${userDetail.totalRounds}\n`;
+                detailInfo += `总翻牌数: ${userDetail.totalFlips}\n`;
+                detailInfo += `提前退出次数: ${userDetail.earlyExits}\n`;
+                detailInfo += `炸弹触发次数: ${userDetail.bombTriggers}\n\n`;
+                
+                // 显示游戏会话详情
+                if (userDetail.sessions && userDetail.sessions.length > 0) {
+                    detailInfo += `=== 游戏详情 ===\n`;
+                    userDetail.sessions.forEach((session, sessionIndex) => {
+                        detailInfo += `\n第${sessionIndex + 1}场游戏 (${new Date(session.startTime).toLocaleString()}):\n`;
+                        if (session.rounds && session.rounds.length > 0) {
+                            detailInfo += `轮次详情:\n`;
+                            session.rounds.forEach((round, roundIndex) => {
+                                detailInfo += `  轮次${roundIndex + 1}: 翻牌${round.flippedCards}张`;
+                                if (round.endReason === 'bomb') {
+                                    detailInfo += `, 触发炸弹，惩罚¥${round.penaltyAmount || 0}`;
+                                } else if (round.endReason === 'win') {
+                                    detailInfo += `, 完美通关，奖励¥${round.roundBonus || 0}`;
+                                } else if (round.endReason === 'stop') {
+                                    detailInfo += `, 提前结束，获得¥${round.roundBonus || 0}`;
+                                }
+                                detailInfo += `\n`;
+                            });
+                        }
+                    });
+                } else {
+                    detailInfo += '暂无游戏记录\n';
+                }
+                
+                alert(detailInfo);
+            } catch (error) {
+                console.error('获取用户详情失败:', error);
+                alert('获取用户详情失败，请重试');
+            }
+        }
+        
+        async function clearAllData() {
+            if (confirm('确定要清空所有用户数据吗？此操作不可恢复！')) {
+                try {
+                    await gameAPI.clearAllData();
+                    await updateAdminStats();
+                    alert('所有数据已清空');
+                } catch (error) {
+                    console.error('清空数据失败:', error);
+                    alert('清空数据失败，请重试');
+                }
+            }
+        }
+        
+        // 事件监听
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorEl = document.getElementById('error-message');
+            
+            errorEl.textContent = '';
+            
+            if (!username || !password) {
+                errorEl.textContent = '请输入用户名和密码';
+                return;
+            }
+            
+            if (gameData.isRegistering) {
+                // 注册模式
+                if (password !== confirmPassword) {
+                    errorEl.textContent = '两次输入的密码不一致';
+                    return;
+                }
+                
+                const result = await registerUser(username, password);
+                if (result.success) {
+                    errorEl.style.color = '#4caf50';
+                    errorEl.textContent = result.message;
+                    
+                    // 切换回登录模式
+                    setTimeout(() => {
+                        toggleRegisterMode(false);
+                        document.getElementById('username').value = username;
+                        document.getElementById('password').value = '';
+                        errorEl.textContent = '';
+                        errorEl.style.color = '#ff4444';
+                    }, 1500);
+                } else {
+                    errorEl.textContent = result.message;
+                }
+            } else {
+                // 登录模式
+                const result = await loginUser(username, password);
+                if (result.success) {
+                    if (result.isAdmin) {
+                        loginPage.classList.remove('active');
+                        adminPage.classList.add('active');
+                        await updateAdminStats();
+                    } else {
+                        // 普通用户先显示游戏规则页面
+                        loginPage.classList.remove('active');
+                        rulesPage.classList.add('active');
+                    }
+                } else {
+                    errorEl.textContent = result.message;
+                }
+            }
+        });
+        
+        document.getElementById('register-btn').addEventListener('click', () => {
+            toggleRegisterMode(!gameData.isRegistering);
+        });
+        
+        function toggleRegisterMode(isRegistering) {
+            gameData.isRegistering = isRegistering;
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const confirmPasswordGroup = document.getElementById('confirm-password-group');
+            const errorEl = document.getElementById('error-message');
+            
+            if (isRegistering) {
+                loginBtn.textContent = '确认注册';
+                registerBtn.textContent = '返回登录';
+                confirmPasswordGroup.style.display = 'block';
+            } else {
+                loginBtn.textContent = '登录游戏';
+                registerBtn.textContent = '注册账号';
+                confirmPasswordGroup.style.display = 'none';
+                document.getElementById('confirm-password').value = '';
+            }
+            
+            errorEl.textContent = '';
+            errorEl.style.color = '#ff4444';
+        }
+        
+        // 游戏规则页面事件监听
+        document.getElementById('exit-to-login-btn').addEventListener('click', () => {
+            // 清除认证token
+            gameAPI.clearToken();
+            
+            rulesPage.classList.remove('active');
+            loginPage.classList.add('active');
+            
+            // 清除输入框
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('error-message').textContent = '';
+        });
+        
+        document.getElementById('enter-game-btn').addEventListener('click', async () => {
+            rulesPage.classList.remove('active');
+            gamePage.classList.add('active');
+            
+            // 初始化游戏页面
+            await initGame();
+        });
+        
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            // 检查余额是否足够开启游戏（至少200元）
+            if (gameData.totalBonus < 200) {
+                alert(`余额不足！当前余额：¥${gameData.totalBonus.toLocaleString()}，需要至少¥200才能开始游戏`);
+                return;
+            }
+            
+            // 显示扣费确认对话框
+            if (confirm(`开始游戏将扣除¥${gameData.roundCost.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}，是否继续？`)) {
+                startNewRound();
+            }
+        });
+        
+        document.getElementById('stop-round-btn').addEventListener('click', () => {
+            if (gameData.gameActive && !gameData.roundEnded) {
+                showConfirmDialog();
+            }
+        });
+        
+        document.getElementById('dialog-confirm').addEventListener('click', () => {
+            hideConfirmDialog();
+            endRound('stop');
+        });
+        
+        document.getElementById('dialog-cancel').addEventListener('click', () => {
+            hideConfirmDialog();
+        });
+        
+        // 付费对话框事件监听
+        document.getElementById('payment-confirm').addEventListener('click', () => {
+            hidePaymentDialog();
+            startNewRound();
+        });
+        
+        document.getElementById('payment-cancel').addEventListener('click', () => {
+            hidePaymentDialog();
+        });
+        
+        document.getElementById('exit-game-btn').addEventListener('click', exitToLogin);
+        
+        document.getElementById('clear-all-data-btn').addEventListener('click', clearAllData);
+        
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            // 清除认证token
+            gameAPI.clearToken();
+            
+            adminPage.classList.remove('active');
+            loginPage.classList.add('active');
+            
+            // 清除输入框
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('error-message').textContent = '';
+        });
+        
+        // 初始化
+        window.onload = () => {
+            // 检查是否有保存的认证token
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                gameAPI.setToken(savedToken);
+            }
+            
+            console.log('游戏已加载，请登录开始游戏');
+        };
+    </script>
+</body>
+</html>
