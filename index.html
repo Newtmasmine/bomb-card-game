@@ -1018,16 +1018,40 @@
                 }
                 
                 try {
+                    console.log('发送API请求:', url, config);
                     const response = await fetch(url, config);
-                    const data = await response.json();
                     
+                    // 检查响应状态
                     if (!response.ok) {
-                        throw new Error(data.message || '请求失败');
+                        console.error('HTTP错误状态:', response.status, response.statusText);
+                        
+                        // 尝试解析错误响应
+                        let errorMessage;
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                        } catch (e) {
+                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                        throw new Error(errorMessage);
                     }
                     
+                    const data = await response.json();
+                    console.log('API响应成功:', data);
                     return data;
                 } catch (error) {
-                    console.error('API请求错误:', error);
+                    console.error('API请求详细错误:', {
+                        message: error.message,
+                        url: url,
+                        config: config,
+                        stack: error.stack
+                    });
+                    
+                    // 提供更友好的错误信息
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        throw new Error('网络连接失败，请检查网络或稍后重试');
+                    }
+                    
                     throw error;
                 }
             }

@@ -37,13 +37,18 @@ const rateLimiterMiddleware = (req, res, next) => {
 app.use(helmet()); // 安全头
 app.use(cors({
     origin: [
-        'https://newtmasmine.github.io', 
+        'https://newtmasmine.github.io',
+        'https://newtmasmine.github.io/',
         'http://localhost:3000', 
         'http://127.0.0.1:5500',
+        'http://127.0.0.1:3000',
         /\.vercel\.app$/,  // 允许所有Vercel域名
-        /\.onrender\.com$/ // 允许所有Render域名
+        /\.onrender\.com$/, // 允许所有Render域名
+        /\.github\.io$/    // 允许所有GitHub Pages域名
     ],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 })); // 跨域
 app.use(express.json({ limit: '10mb' })); // JSON解析
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL编码解析
