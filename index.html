@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>炸弹翻牌游戏</title>
-    <!-- 防止缓存 -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <style>
         * {
             box-sizing: border-box;
@@ -1196,6 +1192,33 @@
         
         // 创建API实例
         const gameAPI = new GameAPI();
+        
+        // 添加缺失的用户信息更新函数
+        async function refreshUserInfoBalanceSafe() {
+            try {
+                const userInfo = await gameAPI.getUserInfo();
+                gameData.userInfo = userInfo;
+                gameData.totalBonus = userInfo.data.current_balance || 2000;
+                console.log('用户信息刷新成功，当前余额:', gameData.totalBonus);
+                return true;
+            } catch (error) {
+                console.error('刷新用户信息失败:', error);
+                return false;
+            }
+        }
+        
+        // 更新游戏页面余额显示
+        async function updateGamePageBalance() {
+            try {
+                await refreshUserInfoBalanceSafe();
+                if (totalBonusEl) {
+                    totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                }
+                console.log('游戏页面余额已更新:', gameData.totalBonus);
+            } catch (error) {
+                console.error('更新游戏页面余额失败:', error);
+            }
+        }
         
         // 游戏数据
         const gameData = {
