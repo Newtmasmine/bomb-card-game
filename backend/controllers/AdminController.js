@@ -214,11 +214,11 @@ class AdminController {
     static async clearAllData(req, res) {
         try {
             // 删除所有非管理员数据
-            await db.run('DELETE FROM risk_estimations');
-            await db.run('DELETE FROM game_rounds');
-            await db.run('DELETE FROM game_sessions');
-            await db.run('DELETE FROM user_stats');
-            await db.run('DELETE FROM users');
+            await database.run('DELETE FROM risk_estimations');
+            await database.run('DELETE FROM game_rounds');
+            await database.run('DELETE FROM game_sessions');
+            await database.run('DELETE FROM user_stats');
+            await database.run('DELETE FROM users');
 
             res.json({
                 success: true,
