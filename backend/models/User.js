@@ -135,18 +135,19 @@ class User {
                 SELECT 
                     u.id,
                     u.username,
-                    u.current_balance,
-                    u.total_rewards,
+                    u.balance as current_balance,
+                    u.balance as total_rewards,
                     u.created_at,
                     u.last_login,
-                    s.total_flips,
-                    s.games_played,
-                    s.rounds_played,
-                    s.early_exits,
-                    s.bomb_triggers,
-                    s.total_game_time
+                    COALESCE(s.total_flips, 0) as total_flips,
+                    COALESCE(s.games_played, 0) as games_played,
+                    COALESCE(s.rounds_played, 0) as rounds_played,
+                    COALESCE(s.early_exits, 0) as early_exits,
+                    COALESCE(s.bomb_triggers, 0) as bomb_triggers,
+                    COALESCE(s.total_game_time, 0) as total_game_time
                 FROM users u
                 LEFT JOIN user_stats s ON u.id = s.user_id
+                WHERE u.id > 0
                 ORDER BY u.created_at DESC
             `);
         } catch (error) {

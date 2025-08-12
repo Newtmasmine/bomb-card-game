@@ -9,7 +9,7 @@ class AdminController {
             const globalStats = await database.get(`
                 SELECT 
                     COALESCE(COUNT(*), 0) as totalUsers,
-                    COALESCE(SUM(total_game_time), 0) as totalGames
+                    COALESCE(COUNT(*), 0) as totalGames
                 FROM users
                 WHERE id > 0
             `);

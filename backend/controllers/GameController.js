@@ -255,14 +255,25 @@ class GameController {
             const userId = req.user.userId;
             const { balance } = req.body;
 
+            console.log(`更新用户 ${userId} 余额为: ${balance}`);
+
             await database.run(
                 `UPDATE users SET balance = ? WHERE id = ?`,
                 [balance, userId]
             );
 
+            // 验证更新结果
+            const updatedUser = await database.get(
+                `SELECT balance FROM users WHERE id = ?`,
+                [userId]
+            );
+
+            console.log(`用户 ${userId} 余额更新后: ${updatedUser?.balance}`);
+
             res.json({
                 success: true,
-                message: '余额更新成功'
+                message: '余额更新成功',
+                data: { balance: updatedUser?.balance }
             });
         } catch (error) {
             console.error('Update balance error:', error);
@@ -282,6 +293,8 @@ class GameController {
                 `SELECT id, username, balance FROM users WHERE id = ?`,
                 [userId]
             );
+
+            console.log(`获取用户 ${userId} 信息:`, user);
 
             if (!user) {
                 return res.status(404).json({
