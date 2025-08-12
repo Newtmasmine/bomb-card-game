@@ -36,7 +36,13 @@ const rateLimiterMiddleware = (req, res, next) => {
 // 中间件配置
 app.use(helmet()); // 安全头
 app.use(cors({
-    origin: ['https://newtmasmine.github.io', 'http://localhost:3000', 'http://127.0.0.1:5500'],
+    origin: [
+        'https://newtmasmine.github.io', 
+        'http://localhost:3000', 
+        'http://127.0.0.1:5500',
+        /\.vercel\.app$/,  // 允许所有Vercel域名
+        /\.onrender\.com$/ // 允许所有Render域名
+    ],
     credentials: true
 })); // 跨域
 app.use(express.json({ limit: '10mb' })); // JSON解析
@@ -60,6 +66,21 @@ app.get('/api/health', (req, res) => {
         success: true,
         message: '服务运行正常',
         timestamp: new Date().toISOString()
+    });
+});
+
+// 根路由 - Vercel需要
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Bomb Card Game API is running!',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            health: '/api/health',
+            auth: '/api/auth',
+            admin: '/api/admin',
+            game: '/api/game'
+        }
     });
 });
 
@@ -87,15 +108,19 @@ const startServer = async () => {
         await db.connect();
         console.log('数据库连接成功');
 
-        // 启动服务器
-        app.listen(PORT, () => {
-            console.log(`服务器运行在端口 ${PORT}`);
-            console.log(`健康检查: http://localhost:${PORT}/api/health`);
-            console.log(`API文档: 请查看 README.md`);
-        });
+        // 只在非Vercel环境下启动服务器
+        if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+            app.listen(PORT, () => {
+                console.log(`服务器运行在端口 ${PORT}`);
+                console.log(`健康检查: http://localhost:${PORT}/api/health`);
+                console.log(`API文档: 请查看 README.md`);
+            });
+        }
     } catch (error) {
         console.error('服务器启动失败:', error);
-        process.exit(1);
+        if (!process.env.VERCEL) {
+            process.exit(1);
+        }
     }
 };
 
@@ -124,4 +149,8 @@ process.on('SIGTERM', async () => {
     }
 });
 
+// 启动服务器
 startServer();
+
+// 导出app实例供Vercel使用
+module.exports = app;

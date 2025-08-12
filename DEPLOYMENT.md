@@ -26,19 +26,25 @@
    - Branch 选择 "main" 和 "/ (root)"
    - 保存后前端将部署到 `https://yourusername.github.io/bomb-card-game`
 
-### 2. 后端部署（Railway - 推荐）
+### 2. 后端部署（⚠️ Railway已限制免费计划）
 
-#### 方法一：从GitHub部署（推荐）
+**Railway更新**: 免费账户现在只能部署数据库，请使用以下替代方案：
 
-1. **访问 [Railway.app](https://railway.app)**
+#### 方法一：Render（推荐 - 完全免费）
+
+1. **访问 [Render.com](https://render.com)**
 2. **使用GitHub账号注册/登录**
-3. **创建新项目**:
-   - 点击 "New Project"
-   - 选择 "Deploy from GitHub repo"
-   - 选择您的仓库
-   - 选择 `backend` 文件夹作为根目录
+3. **创建Web Service**:
+   - Dashboard → New → Web Service
+   - Connect your GitHub repository
+   - Repository: 选择 `bomb-card-game`
+   - Root Directory: `backend`
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - 选择 **Free** 计划
 
 4. **配置环境变量**:
+   - 在Render仪表板中添加Environment Variables:
    ```
    NODE_ENV=production
    JWT_SECRET=your-super-secure-jwt-secret-key-here
@@ -46,36 +52,50 @@
    ```
 
 5. **部署完成**:
-   - Railway会自动检测到package.json
-   - 自动运行 `npm install` 和 `npm start`
-   - 获得类似 `https://your-app-name.up.railway.app` 的URL
+   - Render会自动部署
+   - 获得类似 `https://your-app-name.onrender.com` 的URL
 
-#### 方法二：使用Railway CLI
+#### 方法二：Vercel（免费 - 适合Node.js）
 
-```bash
-# 安装Railway CLI
-npm install -g @railway/cli
-
-# 登录
-railway login
-
-# 在backend文件夹中初始化
-cd backend
-railway init
-
-# 部署
-railway up
-```
-
-### 3. 后端部署（Render - 备选方案）
-
-1. **访问 [Render.com](https://render.com)**
-2. **连接GitHub账号**
-3. **创建Web Service**:
-   - Repository: 选择您的仓库
+1. **访问 [Vercel.com](https://vercel.com)**
+2. **Import GitHub Repository**
+3. **配置项目**:
+   - Framework: Other
    - Root Directory: `backend`
    - Build Command: `npm install`
-   - Start Command: `npm start`
+   - Output Directory: `.`
+   - Install Command: `npm install`
+
+#### 方法三：Cyclic（免费 - 专为Node.js设计）
+
+1. **访问 [Cyclic.sh](https://www.cyclic.sh)**
+2. **Connect GitHub Repository**
+3. **自动部署** - 检测到package.json后自动配置
+
+#### 方法四：Glitch（免费 - 在线IDE）
+
+1. **访问 [Glitch.com](https://glitch.com)**
+2. **Import from GitHub**
+3. **自动运行** - 支持实时编辑
+
+### 3. 后端部署（备选方案 - 其他免费服务）
+
+**如果Render也有问题，可以尝试：**
+
+#### Heroku（需要信用卡验证，但免费）
+1. 访问 [Heroku.com](https://heroku.com)
+2. 创建新应用
+3. 连接GitHub仓库
+4. 设置Buildpack为Node.js
+
+#### Back4App（免费额度）
+1. 访问 [Back4App.com](https://www.back4app.com)
+2. 专为后端API设计
+3. 支持Node.js应用
+
+#### PlanetScale + Vercel组合
+- PlanetScale：免费MySQL数据库
+- Vercel：部署Node.js API
 
 ### 4. 更新前端API配置
 
@@ -101,16 +121,28 @@ ADMIN_PASSWORD=$2b$10$abcdefghijklmnopqrstuvwxyz
 
 ## 📊 免费额度说明
 
-### Railway (推荐)
-- ✅ 每月500小时运行时间
-- ✅ 自动休眠机制
-- ✅ 支持自定义域名
-- ✅ 简单的GitHub集成
-
-### Render
-- ✅ 每月750小时运行时间  
+### Render (推荐)
+- ✅ 完全免费的Web Service
+- ✅ 每月750小时运行时间
 - ✅ 自动SSL证书
-- ❌ 免费版有冷启动延迟
+- ✅ 支持自定义域名
+- ❌ 免费版有冷启动延迟（15分钟无活动后休眠）
+
+### Vercel
+- ✅ 无服务器函数免费
+- ✅ 快速部署和CDN
+- ✅ 零配置部署
+- ❌ 对长时间运行的进程支持有限
+
+### Cyclic
+- ✅ 专为Node.js优化
+- ✅ 简单一键部署
+- ✅ 包含免费数据库
+- ❌ 新平台，稳定性待验证
+
+### Railway (已限制)
+- ❌ 免费用户只能部署数据库
+- ❌ 需要付费才能部署应用
 
 ## 🔄 自动化部署
 
