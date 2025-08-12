@@ -28,14 +28,14 @@ class AdminController {
             const {
                 totalUsers = 0,
                 totalGames = 0
-            } = globalStats;
+            } = globalStats || {};
 
             const {
                 totalRounds = 0,
                 totalFlips = 0,
                 totalEarlyExits = 0,
                 totalBombTriggers = 0
-            } = roundStats;
+            } = roundStats || {};
 
             // 提前退出率
             const earlyExitRate = totalRounds > 0 ? 
