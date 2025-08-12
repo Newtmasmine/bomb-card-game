@@ -140,6 +140,49 @@ class User {
         }
     }
 
+    // 获取单个用户详细统计信息（包含聚合数据）
+    static async getStats(userId) {
+        try {
+            const result = await database.get(`
+                WITH round_agg AS (
+                    SELECT 
+                        user_id,
+                        COUNT(*) AS rounds_played,
+                        SUM(flipped_cards) AS total_flips,
+                        SUM(CASE WHEN end_reason = 'stop' THEN 1 ELSE 0 END) AS early_exits,
+                        SUM(CASE WHEN end_reason = 'bomb' THEN 1 ELSE 0 END) AS bomb_triggers
+                    FROM game_rounds
+                    WHERE user_id = ?
+                ), session_agg AS (
+                    SELECT user_id, COUNT(*) AS games_played
+                    FROM game_sessions
+                    WHERE user_id = ?
+                )
+                SELECT 
+                    u.id,
+                    u.username,
+                    u.balance AS current_balance,
+                    (u.balance - 2000) AS total_rewards,
+                    u.created_at,
+                    u.last_login,
+                    COALESCE(ra.total_flips, 0) AS total_flips,
+                    COALESCE(sa.games_played, 0) AS games_played,
+                    COALESCE(ra.rounds_played, 0) AS rounds_played,
+                    COALESCE(ra.early_exits, 0) AS early_exits,
+                    COALESCE(ra.bomb_triggers, 0) AS bomb_triggers
+                FROM users u
+                LEFT JOIN round_agg ra ON u.id = ra.user_id
+                LEFT JOIN session_agg sa ON u.id = sa.user_id
+                WHERE u.id = ?
+            `, [userId, userId, userId]);
+
+            return result;
+        } catch (error) {
+            console.error('getStats error:', error);
+            throw error;
+        }
+    }
+
     // 获取所有用户列表（含统计）（管理员用）
     static async getAllUsers() {
         try {

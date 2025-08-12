@@ -1248,6 +1248,11 @@
                 // 修复：使用正确的字段名，新用户默认2000元
                 gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
                 
+                // 立即更新UI显示当前余额
+                if (totalBonusEl) {
+                    totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                }
+                
                 // 创建新的游戏会话
                 const sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 const sessionData = {
@@ -2251,7 +2256,8 @@
             rulesPage.classList.remove('active');
             gamePage.classList.add('active');
             
-            // 初始化游戏页面
+            // 先刷新用户余额信息，然后初始化游戏页面
+            await refreshUserInfoBalanceSafe();
             await initGame();
         });
         
