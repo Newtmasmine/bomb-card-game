@@ -1221,13 +1221,8 @@
                 // 修复：使用正确的字段名
                 gameData.totalBonus = gameData.userInfo.data.current_balance || 1000;
                 
-                // 创建新的游戏会话
-                const sessionData = {
-                    startTime: new Date().toISOString()
-                };
-                
-                const sessionResponse = await gameAPI.recordSession(sessionData);
-                gameData.currentSessionId = sessionResponse.data.sessionId;
+                // 临时跳过游戏会话记录，直接设置默认值
+                gameData.currentSessionId = 'temp-session-' + Date.now();
                 
                 gameData.currentPlayerSession = {
                     sessionId: gameData.currentSessionId,
