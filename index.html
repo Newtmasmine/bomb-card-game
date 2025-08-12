@@ -976,8 +976,9 @@
             if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 return 'http://localhost:3000/api';
             }
-            // 生产环境 - Vercel部署地址 (更新后的URL)
-            return 'https://bomb-card-game-abytm56i2-newtmasmines-projects.vercel.app/api';
+            // 生产环境 - 使用固定域名 (请在Vercel中设置)
+            // 如果您有自定义域名，请替换下面的URL
+            return 'https://bomb-card-game-backend.vercel.app/api';
         };
         
         const API_BASE_URL = getAPIBaseURL();
