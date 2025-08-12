@@ -1405,7 +1405,7 @@
                 gameData.totalBonus = 2000;
             }
             
-            // 更新余额显示
+            // 立即更新游戏页面的余额显示
             totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
             currentBonusEl.textContent = '¥0';
             flippedCountEl.textContent = '0';
@@ -1425,6 +1425,8 @@
             gameData.roundEnded = false;
             gameData.flippedCount = 0;
             gameData.currentRoundBonus = 0;
+            
+            console.log('游戏准备状态，当前余额:', gameData.totalBonus);
         }
         
         // 开始新一轮游戏
@@ -1440,8 +1442,8 @@
                 gameData.gameActive = true;
                 gameData.roundEnded = false;
                 
-                // 更新UI
-                totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                // 立即更新游戏页面UI
+                await updateGamePageBalance();
                 currentBonusEl.textContent = '¥0';
                 flippedCountEl.textContent = '0';
                 remainingCardsEl.textContent = '16';
@@ -1454,6 +1456,8 @@
                 
                 // 创建卡片
                 createCards();
+                
+                console.log('新游戏开始，扣费后余额:', gameData.totalBonus);
             } catch (error) {
                 console.error('开始游戏失败:', error);
                 alert('开始游戏失败，请重试');
@@ -1781,8 +1785,11 @@
                 c.type === 'reward' && !c.flipped);
             const totalRemaining = remainingRewards.reduce((sum, card) => sum + card.value, 0);
             
+            // 计算结束本轮后的总余额
+            const futureBalance = gameData.totalBonus + gameData.currentRoundBonus;
+            
             document.getElementById('remaining-reward-text').textContent = 
-                `还有¥${totalRemaining.toLocaleString()}奖励未翻出`;
+                `还有¥${totalRemaining.toLocaleString()}奖励未翻出\n当前轮次奖金：¥${gameData.currentRoundBonus.toLocaleString()}\n结束后余额：¥${futureBalance.toLocaleString()}`;
             document.getElementById('confirm-dialog').style.display = 'flex';
         }
         
@@ -1931,6 +1938,29 @@
             }
         }
         
+        // 游戏页面余额实时更新函数
+        async function updateGamePageBalance() {
+            try {
+                // 更新游戏页面的余额显示
+                if (totalBonusEl) {
+                    totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                    console.log('游戏页面余额已更新:', gameData.totalBonus);
+                }
+                
+                // 同时更新付费对话框中的余额显示
+                const currentBalanceEl = document.getElementById('current-balance');
+                if (currentBalanceEl) {
+                    currentBalanceEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                }
+                
+                // 触发余额变化的视觉效果
+                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                
+            } catch (error) {
+                console.error('更新游戏页面余额失败:', error);
+            }
+        }
+        
         // 结束当前轮
         async function endRound(reason, penaltyAmount = 0) {
             gameData.gameActive = false;
@@ -1941,36 +1971,42 @@
                 gameMessageEl.textContent = `💣 炸弹！扣除惩罚金额¥${penaltyAmount.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
                 gameMessageEl.style.color = '#f44336';
                 
-                // 金额下降动画
+                // 立即更新游戏页面余额显示（下降动画）
                 animateNumberRoll(currentBonusEl, '¥0', false);
-                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, false);
+                await updateGamePageBalance();
+                
+                console.log('玩家触发炸弹，余额已更新至:', gameData.totalBonus);
             } else if (reason === 'win') {
+                // 玩家完美通关，获得全部奖励
                 gameData.totalBonus += gameData.currentRoundBonus;
                 gameMessageEl.textContent = `🎉 完美！获得本轮所有奖励！当前余额：¥${gameData.totalBonus.toLocaleString()}`;
                 gameMessageEl.style.color = '#4caf50';
                 
-                // 金额上升动画
-                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                // 立即更新游戏页面余额显示
+                await updateGamePageBalance();
                 
                 // 更新后端余额
                 try {
                     await gameAPI.updateBalance(gameData.totalBonus);
                     await refreshUserInfoBalanceSafe();
+                    console.log('玩家完美通关，余额已更新至:', gameData.totalBonus);
                 } catch (error) {
                     console.error('更新余额失败:', error);
                 }
             } else if (reason === 'stop') {
+                // 玩家主动结束本轮，保留当前轮奖金
                 gameData.totalBonus += gameData.currentRoundBonus;
                 gameMessageEl.textContent = `🛑 本轮结束！获得奖金：¥${gameData.currentRoundBonus.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
                 gameMessageEl.style.color = '#ff9800';
                 
-                // 金额上升动画
-                animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, true);
+                // 立即更新游戏页面余额显示
+                await updateGamePageBalance();
                 
                 // 更新后端余额
                 try {
                     await gameAPI.updateBalance(gameData.totalBonus);
                     await refreshUserInfoBalanceSafe();
+                    console.log('玩家结束本轮，余额已更新至:', gameData.totalBonus);
                 } catch (error) {
                     console.error('更新余额失败:', error);
                 }
