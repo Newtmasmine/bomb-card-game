@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const { GameSession, GameRound, RiskEstimation } = require('../models/Game');
+const database = require('../config/database');
 
 class GameController {
     // 获取用户信息
@@ -158,7 +158,7 @@ class GameController {
                 });
             }
 
-            await db.run(
+            await database.run(
                 `INSERT INTO game_sessions (session_id, user_id, start_time) VALUES (?, ?, ?)`,
                 [sessionId, userId, startTime]
             );
@@ -184,7 +184,7 @@ class GameController {
             const userId = req.user.userId;
             const { flippedCards, roundBonus, endReason, penaltyAmount, bombCount, totalBonusAfter } = req.body;
 
-            await db.run(
+            await database.run(
                 `INSERT INTO game_rounds (session_id, user_id, flipped_cards, round_bonus, end_reason, penalty_amount, bomb_count, total_bonus_after) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [sessionId, userId, flippedCards, roundBonus, endReason, penaltyAmount, bombCount, totalBonusAfter]
             );
@@ -208,7 +208,7 @@ class GameController {
             const userId = req.user.userId;
             const { sessionId, actualBombProb, flippedCount } = req.body;
 
-            await db.run(
+            await database.run(
                 `INSERT INTO risk_estimations (session_id, user_id, actual_bomb_prob, flipped_count) VALUES (?, ?, ?, ?)`,
                 [sessionId, userId, actualBombProb, flippedCount]
             );
@@ -231,7 +231,7 @@ class GameController {
         try {
             const userId = req.user.userId;
             
-            const sessions = await db.all(
+            const sessions = await database.query(
                 `SELECT * FROM game_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
                 [userId]
             );

@@ -1,33 +1,41 @@
 const User = require('../models/User');
-const { GameSession } = require('../models/Game');
-const db = require('../config/database');
+const database = require('../config/database');
 
 class AdminController {
     // 获取全局统计数据
     static async getGlobalStats(req, res) {
         try {
             // 获取全局统计数据
-            const globalStats = await db.get(`
+            const globalStats = await database.get(`
                 SELECT 
-                    COALESCE(SUM(s.total_flips), 0) as totalFlips,
-                    COALESCE(SUM(s.games_played), 0) as totalGames,
-                    COALESCE(SUM(s.rounds_played), 0) as totalRounds,
-                    COALESCE(SUM(s.early_exits), 0) as totalEarlyExits,
-                    COALESCE(SUM(s.bomb_triggers), 0) as totalBombTriggers,
-                    COALESCE(COUNT(DISTINCT u.id), 0) as totalUsers
-                FROM user_stats s
-                JOIN users u ON s.user_id = u.id
+                    COALESCE(COUNT(*), 0) as totalUsers,
+                    COALESCE(SUM(total_game_time), 0) as totalGames
+                FROM users
+                WHERE id > 0
+            `);
+
+            // 获取游戏轮次和翻卡统计
+            const roundStats = await database.get(`
+                SELECT 
+                    COALESCE(COUNT(*), 0) as totalRounds,
+                    COALESCE(SUM(flipped_cards), 0) as totalFlips,
+                    COALESCE(SUM(CASE WHEN end_reason = 'stop' THEN 1 ELSE 0 END), 0) as totalEarlyExits,
+                    COALESCE(SUM(CASE WHEN end_reason = 'bomb' THEN 1 ELSE 0 END), 0) as totalBombTriggers
+                FROM game_rounds
             `);
 
             // 计算统计指标
             const {
-                totalFlips = 0,
-                totalGames = 0,
-                totalRounds = 0,
-                totalEarlyExits = 0,
-                totalBombTriggers = 0,
-                totalUsers = 0
+                totalUsers = 0,
+                totalGames = 0
             } = globalStats;
+
+            const {
+                totalRounds = 0,
+                totalFlips = 0,
+                totalEarlyExits = 0,
+                totalBombTriggers = 0
+            } = roundStats;
 
             // 提前退出率
             const earlyExitRate = totalRounds > 0 ? 
@@ -38,9 +46,10 @@ class AdminController {
                 (totalBombTriggers / totalRounds) * 100 : 0;
 
             // 收益偏离度 - 计算实际收益与期望收益的偏离
-            const totalRewards = await db.get(`
-                SELECT COALESCE(SUM(total_rewards - 2000), 0) as netRewards 
+            const totalRewards = await database.get(`
+                SELECT COALESCE(SUM(balance - 2000), 0) as netRewards 
                 FROM users
+                WHERE id > 0
             `);
             
             const expectedTotalReward = totalGames * 200 * 0.3; // 期望每场游戏净收益30%
