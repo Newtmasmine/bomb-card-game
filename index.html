@@ -1000,6 +1000,7 @@
             
             // 设置认证token
             setToken(token) {
+                console.log('设置Token:', token);
                 this.token = token;
                 localStorage.setItem('authToken', token);
             }
@@ -1736,14 +1737,21 @@
             try {
                 if (username === 'admin' && password === 'admin001') {
                     const result = await gameAPI.adminLogin(username, password);
-                    gameAPI.setToken(result.token);
-                    return { success: true, isAdmin: true };
+                    console.log('管理员登录结果:', result);
+                    if (result.data && result.data.token) {
+                        gameAPI.setToken(result.data.token);
+                        return { success: true, isAdmin: true };
+                    }
                 } else {
                     const result = await gameAPI.login(username, password);
-                    gameAPI.setToken(result.token);
-                    gameData.currentUser = username;
-                    return { success: true, isAdmin: false };
+                    console.log('用户登录结果:', result);
+                    if (result.data && result.data.token) {
+                        gameAPI.setToken(result.data.token);
+                        gameData.currentUser = username;
+                        return { success: true, isAdmin: false };
+                    }
                 }
+                return { success: false, message: '登录响应格式错误' };
             } catch (error) {
                 return { success: false, message: error.message || '登录失败' };
             }
