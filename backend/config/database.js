@@ -47,7 +47,7 @@ class Database {
                 password TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_login DATETIME,
-                balance INTEGER DEFAULT 1000
+                balance INTEGER DEFAULT 2000
             )`,
             `CREATE TABLE IF NOT EXISTS user_stats (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

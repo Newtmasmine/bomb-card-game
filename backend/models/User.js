@@ -92,10 +92,11 @@ class User {
     static async updateBalance(userId, newBalance) {
         try {
             await db.run(
-                `UPDATE users SET current_balance = ?, total_rewards = ? WHERE id = ?`,
-                [newBalance, newBalance, userId]
+                `UPDATE users SET balance = ? WHERE id = ?`,
+                [newBalance, userId]
             );
         } catch (error) {
+            console.error('updateBalance error:', error);
             throw error;
         }
     }

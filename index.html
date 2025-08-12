@@ -1218,11 +1218,21 @@
             try {
                 // 获取用户信息
                 gameData.userInfo = await gameAPI.getUserInfo();
-                // 修复：使用正确的字段名
-                gameData.totalBonus = gameData.userInfo.data.current_balance || 1000;
+                // 修复：使用正确的字段名，新用户默认2000元
+                gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
                 
-                // 临时跳过游戏会话记录，直接设置默认值
-                gameData.currentSessionId = 'temp-session-' + Date.now();
+                // 创建新的游戏会话
+                const sessionData = {
+                    startTime: new Date().toISOString()
+                };
+                
+                try {
+                    const sessionResponse = await gameAPI.recordSession(sessionData);
+                    gameData.currentSessionId = sessionResponse.data.sessionId;
+                } catch (sessionError) {
+                    console.warn('会话记录失败，使用临时会话:', sessionError.message);
+                    gameData.currentSessionId = 'temp-session-' + Date.now();
+                }
                 
                 gameData.currentPlayerSession = {
                     sessionId: gameData.currentSessionId,
@@ -1253,10 +1263,10 @@
         function showGameReadyState() {
             // 使用从后端获取的用户余额，确保数据存在
             if (gameData.userInfo && gameData.userInfo.data) {
-                gameData.totalBonus = gameData.userInfo.data.current_balance || 1000;
+                gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
             } else {
-                // 如果没有用户信息，使用默认值
-                gameData.totalBonus = 1000;
+                // 如果没有用户信息，使用新用户默认值2000元
+                gameData.totalBonus = 2000;
             }
             
             // 更新余额显示
