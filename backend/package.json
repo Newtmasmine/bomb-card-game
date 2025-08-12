@@ -4,8 +4,7 @@
   "description": "Backend API for Bomb Card Game",
   "main": "server.js",
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": "18.x"
   },
   "scripts": {
     "start": "node server.js",
@@ -18,10 +17,10 @@
     "express": "^4.18.2",
     "sqlite3": "^5.1.6",
     "cors": "^2.8.5",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "helmet": "^7.0.0",
-    "rate-limiter-flexible": "^3.0.8"
+    "rate-limiter-flexible": "^2.4.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
