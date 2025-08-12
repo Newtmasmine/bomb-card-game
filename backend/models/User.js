@@ -131,26 +131,32 @@ class User {
     // 获取所有用户列表（管理员用）
     static async getAllUsers() {
         try {
-            return await database.query(`
+            // 先简单查询用户表，避免复杂JOIN导致的问题
+            const users = await database.query(`
                 SELECT 
-                    u.id,
-                    u.username,
-                    u.balance as current_balance,
-                    u.balance as total_rewards,
-                    u.created_at,
-                    u.last_login,
-                    COALESCE(s.total_flips, 0) as total_flips,
-                    COALESCE(s.games_played, 0) as games_played,
-                    COALESCE(s.rounds_played, 0) as rounds_played,
-                    COALESCE(s.early_exits, 0) as early_exits,
-                    COALESCE(s.bomb_triggers, 0) as bomb_triggers,
-                    COALESCE(s.total_game_time, 0) as total_game_time
-                FROM users u
-                LEFT JOIN user_stats s ON u.id = s.user_id
-                WHERE u.id > 0
-                ORDER BY u.created_at DESC
+                    id,
+                    username,
+                    balance as current_balance,
+                    balance as total_rewards,
+                    created_at,
+                    last_login
+                FROM users
+                WHERE id > 0
+                ORDER BY created_at DESC
             `);
+
+            // 为每个用户添加默认统计值
+            return users.map(user => ({
+                ...user,
+                total_flips: 0,
+                games_played: 0,
+                rounds_played: 0,
+                early_exits: 0,
+                bomb_triggers: 0,
+                total_game_time: 0
+            }));
         } catch (error) {
+            console.error('getAllUsers error:', error);
             throw error;
         }
     }
