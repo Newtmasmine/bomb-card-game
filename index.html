@@ -1022,9 +1022,19 @@
                     ...options
                 };
                 
+                // 调试：检查token状态
+                console.log('请求前token状态:', {
+                    thisToken: this.token,
+                    localStorageToken: localStorage.getItem('authToken'),
+                    endpoint: endpoint
+                });
+                
                 // 添加认证头
                 if (this.token) {
                     config.headers.Authorization = `Bearer ${this.token}`;
+                    console.log('已添加Authorization头');
+                } else {
+                    console.warn('警告：没有token，无法添加Authorization头');
                 }
                 
                 try {
@@ -1994,7 +2004,22 @@
             } else {
                 // 登录模式
                 const result = await loginUser(username, password);
+                console.log('登录按钮处理结果:', result);
+                
                 if (result.success) {
+                    // 强制刷新token状态
+                    const currentToken = localStorage.getItem('authToken');
+                    console.log('登录成功后的token状态:', {
+                        gameAPIToken: gameAPI.token,
+                        localStorageToken: currentToken
+                    });
+                    
+                    // 如果token存在但gameAPI中没有，强制设置
+                    if (currentToken && !gameAPI.token) {
+                        gameAPI.token = currentToken;
+                        console.log('强制设置gameAPI token');
+                    }
+                    
                     if (result.isAdmin) {
                         loginPage.classList.remove('active');
                         adminPage.classList.add('active');
