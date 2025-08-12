@@ -69,6 +69,43 @@ class Database {
                 time_played INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS game_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT UNIQUE NOT NULL,
+                user_id INTEGER,
+                start_time DATETIME NOT NULL,
+                end_time DATETIME,
+                total_rounds INTEGER DEFAULT 0,
+                total_cards_flipped INTEGER DEFAULT 0,
+                total_bombs_hit INTEGER DEFAULT 0,
+                total_bonus INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS game_rounds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_id INTEGER,
+                round_number INTEGER DEFAULT 1,
+                flipped_cards INTEGER DEFAULT 0,
+                round_bonus INTEGER DEFAULT 0,
+                end_reason TEXT,
+                penalty_amount INTEGER DEFAULT 0,
+                bomb_count INTEGER DEFAULT 0,
+                total_bonus_after INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS risk_estimations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                user_id INTEGER,
+                actual_bomb_prob REAL NOT NULL,
+                flipped_count INTEGER NOT NULL,
+                estimation_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )`
         ];
 

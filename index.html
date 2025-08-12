@@ -1222,16 +1222,19 @@
                 gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
                 
                 // 创建新的游戏会话
+                const sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 const sessionData = {
+                    sessionId: sessionId,
                     startTime: new Date().toISOString()
                 };
                 
                 try {
                     const sessionResponse = await gameAPI.recordSession(sessionData);
-                    gameData.currentSessionId = sessionResponse.data.sessionId;
+                    gameData.currentSessionId = sessionId;
+                    gameData.currentSessionId = sessionId;
                 } catch (sessionError) {
                     console.warn('会话记录失败，使用临时会话:', sessionError.message);
-                    gameData.currentSessionId = 'temp-session-' + Date.now();
+                    gameData.currentSessionId = sessionId;
                 }
                 
                 gameData.currentPlayerSession = {
@@ -1245,7 +1248,7 @@
                 };
                 
                 // 检查是否为新用户（余额为2000且没有游戏记录）
-                if (gameData.userInfo.balance === 2000 && gameData.userInfo.gamesPlayed === 0) {
+                if (gameData.userInfo.data.current_balance === 2000 && (!gameData.userInfo.data.games_played || gameData.userInfo.data.games_played === 0)) {
                     setTimeout(() => {
                         showNewUserBonusDialog();
                     }, 500);
@@ -1257,6 +1260,107 @@
                 alert('初始化游戏失败，请重试');
                 showGameReadyState();
             }
+        }
+        
+        // 显示新用户奖励对话框
+        function showNewUserBonusDialog() {
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                animation: fadeIn 0.5s ease-out;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: linear-gradient(135deg, #ffd700, #ffed4e);
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+                transform: scale(0.7);
+                animation: bounceIn 0.6s ease-out forwards;
+                border: 3px solid #ffcc00;
+            `;
+            
+            content.innerHTML = `
+                <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                <h2 style="color: #d4af37; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">欢迎新用户！</h2>
+                <div style="font-size: 36px; color: #b8860b; font-weight: bold; margin: 20px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                    恭喜获得启动资金
+                </div>
+                <div style="font-size: 48px; color: #ff6b35; font-weight: bold; margin: 20px 0; animation: pulse 2s infinite; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ¥2,000
+                </div>
+                <div style="color: #8b7355; margin: 15px 0; font-size: 16px;">
+                    开始你的翻卡之旅吧！
+                </div>
+                <button id="close-bonus-dialog" style="
+                    background: linear-gradient(135deg, #ff6b35, #f7931e);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    border-radius: 25px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                    transition: transform 0.2s;
+                ">开始游戏</button>
+            `;
+            
+            dialog.appendChild(content);
+            document.body.appendChild(dialog);
+            
+            // 添加动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes bounceIn {
+                    0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+                    50% { transform: scale(1.05) rotate(2deg); }
+                    70% { transform: scale(0.95) rotate(-1deg); }
+                    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); }
+                }
+                #close-bonus-dialog:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 关闭对话框
+            document.getElementById('close-bonus-dialog').addEventListener('click', () => {
+                dialog.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    document.body.removeChild(dialog);
+                    document.head.removeChild(style);
+                    showGameReadyState();
+                }, 300);
+            });
+            
+            // 添加fadeOut动画
+            style.textContent += `
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+            `;
         }
         
         // 显示游戏准备状态

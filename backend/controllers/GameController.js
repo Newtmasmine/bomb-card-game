@@ -149,16 +149,19 @@ class GameController {
     static async recordGameSession(req, res) {
         try {
             const userId = req.user.userId;
-            const sessionData = req.body;
+            const { sessionId, startTime } = req.body;
 
-            const sessionId = await GameSession.create(userId, sessionData);
+            if (!sessionId || !startTime) {
+                return res.status(400).json({
+                    success: false,
+                    message: '缺少必要参数'
+                });
+            }
 
-            // 更新用户统计
-            await User.updateStats(userId, {
-                games_played: 1,
-                total_flips: sessionData.total_flips || 0,
-                total_game_time: sessionData.session_duration || 0
-            });
+            await db.run(
+                `INSERT INTO game_sessions (session_id, user_id, start_time) VALUES (?, ?, ?)`,
+                [sessionId, userId, startTime]
+            );
 
             res.json({
                 success: true,
@@ -178,28 +181,17 @@ class GameController {
     static async recordGameRound(req, res) {
         try {
             const { sessionId } = req.params;
-            const roundData = req.body;
             const userId = req.user.userId;
+            const { flippedCards, roundBonus, endReason, penaltyAmount, bombCount, totalBonusAfter } = req.body;
 
-            const roundId = await GameRound.create(sessionId, roundData);
-
-            // 更新用户统计
-            const statsUpdate = {
-                rounds_played: 1
-            };
-
-            if (roundData.end_reason === 'bomb') {
-                statsUpdate.bomb_triggers = 1;
-            } else if (roundData.end_reason === 'stop') {
-                statsUpdate.early_exits = 1;
-            }
-
-            await User.updateStats(userId, statsUpdate);
+            await db.run(
+                `INSERT INTO game_rounds (session_id, user_id, flipped_cards, round_bonus, end_reason, penalty_amount, bomb_count, total_bonus_after) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [sessionId, userId, flippedCards, roundBonus, endReason, penaltyAmount, bombCount, totalBonusAfter]
+            );
 
             res.json({
                 success: true,
-                message: '游戏轮次记录成功',
-                data: { roundId }
+                message: '游戏轮次记录成功'
             });
         } catch (error) {
             console.error('Record game round error:', error);
@@ -214,12 +206,12 @@ class GameController {
     static async recordRiskEstimation(req, res) {
         try {
             const userId = req.user.userId;
-            const { sessionId, roundId, actual_bomb_prob, flipped_count } = req.body;
+            const { sessionId, actualBombProb, flippedCount } = req.body;
 
-            await RiskEstimation.create(userId, sessionId, roundId, {
-                actual_bomb_prob,
-                flipped_count
-            });
+            await db.run(
+                `INSERT INTO risk_estimations (session_id, user_id, actual_bomb_prob, flipped_count) VALUES (?, ?, ?, ?)`,
+                [sessionId, userId, actualBombProb, flippedCount]
+            );
 
             res.json({
                 success: true,
@@ -238,7 +230,11 @@ class GameController {
     static async getUserGameHistory(req, res) {
         try {
             const userId = req.user.userId;
-            const sessions = await GameSession.getUserSessions(userId);
+            
+            const sessions = await db.all(
+                `SELECT * FROM game_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+                [userId]
+            );
 
             res.json({
                 success: true,
