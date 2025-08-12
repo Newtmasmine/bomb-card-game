@@ -248,6 +248,60 @@ class GameController {
             });
         }
     }
+
+    // 更新用户余额
+    static async updateUserBalance(req, res) {
+        try {
+            const userId = req.user.userId;
+            const { balance } = req.body;
+
+            await database.run(
+                `UPDATE users SET balance = ? WHERE id = ?`,
+                [balance, userId]
+            );
+
+            res.json({
+                success: true,
+                message: '余额更新成功'
+            });
+        } catch (error) {
+            console.error('Update balance error:', error);
+            res.status(500).json({
+                success: false,
+                message: '更新余额失败'
+            });
+        }
+    }
+
+    // 获取用户信息
+    static async getUserInfo(req, res) {
+        try {
+            const userId = req.user.userId;
+            
+            const user = await database.get(
+                `SELECT id, username, balance FROM users WHERE id = ?`,
+                [userId]
+            );
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: '用户不存在'
+                });
+            }
+
+            res.json({
+                success: true,
+                data: user
+            });
+        } catch (error) {
+            console.error('Get user info error:', error);
+            res.status(500).json({
+                success: false,
+                message: '获取用户信息失败'
+            });
+        }
+    }
 }
 
 module.exports = GameController;

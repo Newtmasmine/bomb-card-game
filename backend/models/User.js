@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const database = require('../config/database');
 const bcrypt = require('bcrypt');
 
 class User {
@@ -8,13 +8,13 @@ class User {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         try {
-            const result = await db.run(
+            const result = await database.run(
                 `INSERT INTO users (username, password) VALUES (?, ?)`,
                 [username, hashedPassword]
             );
 
             // 同时创建用户统计记录
-            await db.run(
+            await database.run(
                 `INSERT INTO user_stats (user_id) VALUES (?)`,
                 [result.id]
             );
@@ -28,14 +28,14 @@ class User {
     // 用户登录验证
     static async authenticate(username, password) {
         try {
-            const user = await db.get(
+            const user = await database.get(
                 `SELECT id, username, password FROM users WHERE username = ?`,
                 [username]
             );
 
             if (user && await bcrypt.compare(password, user.password)) {
                 // 更新最后登录时间
-                await db.run(
+                await database.run(
                     `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`,
                     [user.id]
                 );
@@ -50,7 +50,7 @@ class User {
     // 获取用户信息
     static async getById(userId) {
         try {
-            return await db.get(
+            return await database.get(
                 `SELECT * FROM users WHERE id = ?`,
                 [userId]
             );
@@ -62,7 +62,7 @@ class User {
     // 获取用户统计数据
     static async getStats(userId) {
         try {
-            return await db.get(`
+            return await database.get(`
                 SELECT 
                     u.username,
                     u.balance as current_balance,
@@ -91,7 +91,7 @@ class User {
     // 更新用户余额
     static async updateBalance(userId, newBalance) {
         try {
-            await db.run(
+            await database.run(
                 `UPDATE users SET balance = ? WHERE id = ?`,
                 [newBalance, userId]
             );
@@ -113,7 +113,7 @@ class User {
                 total_game_time = 0
             } = stats;
 
-            await db.run(`
+            await database.run(`
                 UPDATE user_stats SET
                     total_flips = total_flips + ?,
                     games_played = games_played + ?,
@@ -131,7 +131,7 @@ class User {
     // 获取所有用户列表（管理员用）
     static async getAllUsers() {
         try {
-            return await db.query(`
+            return await database.query(`
                 SELECT 
                     u.id,
                     u.username,
@@ -157,7 +157,7 @@ class User {
     // 删除用户
     static async delete(userId) {
         try {
-            await db.run(`DELETE FROM users WHERE id = ?`, [userId]);
+            await database.run(`DELETE FROM users WHERE id = ?`, [userId]);
         } catch (error) {
             throw error;
         }
