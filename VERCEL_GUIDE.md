@@ -58,7 +58,7 @@ git push
 ### 步骤8: 测试API
 访问以下URL测试：
 ```
-https://bomb-card-game-dnlw362eh-newtmasmines-projects.vercel.app/api/auth/login
+https://bomb-card-game-abytm56i2-newtmasmines-projects.vercel.app/api/auth/login
 ```
 
 如果看到 `{"message":"Missing credentials"}` 说明API正常运行。
@@ -71,7 +71,7 @@ const getAPIBaseURL = () => {
         return 'http://localhost:3000/api';
     }
     // 替换为您的Vercel URL
-    return 'https://bomb-card-game-dnlw362eh-newtmasmines-projects.vercel.app/api';
+    return 'https://bomb-card-game-abytm56i2-newtmasmines-projects.vercel.app/api';
 };
 ```
 
