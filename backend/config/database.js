@@ -116,7 +116,7 @@ class Database {
         // 添加默认管理员账号（如果不存在）
         try {
             const bcrypt = require('bcrypt');
-            const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10);
+            const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin001', 10);
             await this.run(
                 `INSERT OR IGNORE INTO users (id, username, password, balance) VALUES (1, 'admin', ?, 999999)`,
                 [adminPassword]
