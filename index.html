@@ -1959,15 +1959,16 @@
         // 更新管理员统计数据
         async function updateAdminStats() {
             try {
-                const stats = await gameAPI.getAdminStats();
+                const response = await gameAPI.getAdminStats();
+                const stats = response.data || response; // 兼容两种数据格式
                 
                 // 更新统计显示
-                totalFlipsEl.textContent = stats.totalFlips.toLocaleString();
-                totalGamesEl.textContent = stats.totalGames.toLocaleString();
-                earlyExitRateEl.textContent = `${stats.earlyExitRate.toFixed(1)}%`;
-                bombRateEl.textContent = `${stats.bombTriggerRate.toFixed(1)}%`;
-                profitDeviationEl.textContent = stats.profitDeviation.toFixed(2);
-                riskErrorEl.textContent = stats.riskError.toFixed(2);
+                totalFlipsEl.textContent = (stats.totalFlips || 0).toLocaleString();
+                totalGamesEl.textContent = (stats.totalGames || 0).toLocaleString();
+                earlyExitRateEl.textContent = `${(stats.earlyExitRate || 0).toFixed(1)}%`;
+                bombRateEl.textContent = `${(stats.bombRate || 0).toFixed(1)}%`;
+                profitDeviationEl.textContent = (stats.profitDeviation || 0).toFixed(2);
+                riskErrorEl.textContent = (stats.riskError || 0).toFixed(2);
                 
                 // 更新用户详细数据
                 await updateUserDataTable();
@@ -1979,29 +1980,34 @@
         
         async function updateUserDataTable() {
             try {
-                const users = await gameAPI.getAllUsers();
+                const response = await gameAPI.getAllUsers();
+                const users = response.data || response; // 兼容两种数据格式
                 const userDataList = document.getElementById('user-data-list');
                 userDataList.innerHTML = '';
                 
-                users.forEach(user => {
-                    const userRow = document.createElement('div');
-                    userRow.className = 'user-row';
-                    
-                    userRow.innerHTML = `
-                        <div>${user.username}</div>
-                        <div>${user.totalFlips || 0}</div>
-                        <div>${user.earlyExitRate.toFixed(1)}%</div>
-                        <div>${user.profitDeviation.toFixed(2)}</div>
-                        <div>${user.riskError.toFixed(2)}</div>
-                        <div>${user.bombTriggerRate.toFixed(1)}%</div>
-                        <div>
-                            <button class="btn-small" onclick="viewUserDetail(${user.id})">详情</button>
-                            <button class="btn-small btn-danger" onclick="deleteUser(${user.id})">删除</button>
-                        </div>
-                    `;
-                    
-                    userDataList.appendChild(userRow);
-                });
+                if (users && users.length > 0) {
+                    users.forEach(user => {
+                        const userRow = document.createElement('div');
+                        userRow.className = 'user-row';
+                        
+                        userRow.innerHTML = `
+                            <div>${user.username}</div>
+                            <div>${user.total_flips || 0}</div>
+                            <div>${user.earlyExitRate ? user.earlyExitRate.toFixed(1) : '0.0'}%</div>
+                            <div>${user.profitDeviation ? user.profitDeviation.toFixed(2) : '0.00'}</div>
+                            <div>${user.riskError ? user.riskError.toFixed(2) : '0.00'}</div>
+                            <div>${user.bombRate ? user.bombRate.toFixed(1) : '0.0'}%</div>
+                            <div>
+                                <button class="btn-small" onclick="viewUserDetail(${user.id})">详情</button>
+                                <button class="btn-small btn-danger" onclick="deleteUser(${user.id})">删除</button>
+                            </div>
+                        `;
+                        
+                        userDataList.appendChild(userRow);
+                    });
+                } else {
+                    userDataList.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无用户数据</div>';
+                }
             } catch (error) {
                 console.error('获取用户数据失败:', error);
             }
@@ -2022,35 +2028,40 @@
         // 查看用户详情
         async function viewUserDetail(userId) {
             try {
-                const userDetail = await gameAPI.getUserDetail(userId);
+                const response = await gameAPI.getUserDetail(userId);
+                const data = response.data || response; // 兼容两种数据格式
+                const user = data.user || data;
+                const sessions = data.sessions || [];
                 
-                let detailInfo = `=== ${userDetail.username} 用户详情 ===\n\n`;
-                detailInfo += `注册时间: ${new Date(userDetail.createdAt).toLocaleString()}\n`;
-                detailInfo += `当前余额: ¥${userDetail.balance.toLocaleString()}\n`;
-                detailInfo += `总游戏场次: ${userDetail.totalGames}\n`;
-                detailInfo += `总游戏轮次: ${userDetail.totalRounds}\n`;
-                detailInfo += `总翻牌数: ${userDetail.totalFlips}\n`;
-                detailInfo += `提前退出次数: ${userDetail.earlyExits}\n`;
-                detailInfo += `炸弹触发次数: ${userDetail.bombTriggers}\n\n`;
+                let detailInfo = `=== ${user.username || 'Unknown'} 用户详情 ===\n\n`;
+                detailInfo += `注册时间: ${new Date(user.created_at || user.createdAt).toLocaleString()}\n`;
+                detailInfo += `当前余额: ¥${(user.current_balance || user.balance || 0).toLocaleString()}\n`;
+                detailInfo += `总游戏场次: ${user.games_played || 0}\n`;
+                detailInfo += `总游戏轮次: ${user.rounds_played || 0}\n`;
+                detailInfo += `总翻牌数: ${user.total_flips || 0}\n`;
+                detailInfo += `提前退出次数: ${user.early_exits || 0}\n`;
+                detailInfo += `炸弹触发次数: ${user.bomb_triggers || 0}\n\n`;
                 
                 // 显示游戏会话详情
-                if (userDetail.sessions && userDetail.sessions.length > 0) {
+                if (sessions && sessions.length > 0) {
                     detailInfo += `=== 游戏详情 ===\n`;
-                    userDetail.sessions.forEach((session, sessionIndex) => {
-                        detailInfo += `\n第${sessionIndex + 1}场游戏 (${new Date(session.startTime).toLocaleString()}):\n`;
+                    sessions.forEach((session, sessionIndex) => {
+                        detailInfo += `\n第${sessionIndex + 1}场游戏 (${new Date(session.start_time || session.startTime).toLocaleString()}):\n`;
                         if (session.rounds && session.rounds.length > 0) {
                             detailInfo += `轮次详情:\n`;
                             session.rounds.forEach((round, roundIndex) => {
-                                detailInfo += `  轮次${roundIndex + 1}: 翻牌${round.flippedCards}张`;
-                                if (round.endReason === 'bomb') {
-                                    detailInfo += `, 触发炸弹，惩罚¥${round.penaltyAmount || 0}`;
-                                } else if (round.endReason === 'win') {
-                                    detailInfo += `, 完美通关，奖励¥${round.roundBonus || 0}`;
-                                } else if (round.endReason === 'stop') {
-                                    detailInfo += `, 提前结束，获得¥${round.roundBonus || 0}`;
+                                detailInfo += `  轮次${roundIndex + 1}: 翻牌${round.flipped_cards || round.flippedCards || 0}张`;
+                                if (round.end_reason === 'bomb' || round.endReason === 'bomb') {
+                                    detailInfo += `, 触发炸弹，惩罚¥${round.penalty_amount || round.penaltyAmount || 0}`;
+                                } else if (round.end_reason === 'win' || round.endReason === 'win') {
+                                    detailInfo += `, 完美通关，奖励¥${round.round_bonus || round.roundBonus || 0}`;
+                                } else if (round.end_reason === 'stop' || round.endReason === 'stop') {
+                                    detailInfo += `, 提前结束，获得¥${round.round_bonus || round.roundBonus || 0}`;
                                 }
                                 detailInfo += `\n`;
                             });
+                        } else {
+                            detailInfo += `  暂无轮次数据\n`;
                         }
                     });
                 } else {
