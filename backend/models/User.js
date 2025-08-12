@@ -63,23 +63,35 @@ class User {
     static async getStats(userId) {
         try {
             return await database.get(`
+                WITH round_agg AS (
+                    SELECT 
+                        user_id,
+                        COUNT(*) AS rounds_played,
+                        SUM(flipped_cards) AS total_flips,
+                        SUM(CASE WHEN end_reason = 'stop' THEN 1 ELSE 0 END) AS early_exits,
+                        SUM(CASE WHEN end_reason = 'bomb' THEN 1 ELSE 0 END) AS bomb_triggers
+                    FROM game_rounds
+                    GROUP BY user_id
+                ), session_agg AS (
+                    SELECT user_id, COUNT(*) AS games_played
+                    FROM game_sessions
+                    GROUP BY user_id
+                )
                 SELECT 
+                    u.id,
                     u.username,
-                    u.balance as current_balance,
-                    0 as total_rewards,
+                    u.balance AS current_balance,
+                    (u.balance - 2000) AS total_rewards,
                     u.created_at,
                     u.last_login,
-                    COALESCE(s.games_played, 0) as games_played,
-                    COALESCE(s.games_won, 0) as games_won,
-                    COALESCE(s.total_score, 0) as total_score,
-                    COALESCE(s.best_score, 0) as best_score,
-                    0 as total_flips,
-                    0 as rounds_played,
-                    0 as early_exits,
-                    0 as bomb_triggers,
-                    0 as total_game_time
+                    COALESCE(sa.games_played, 0) AS games_played,
+                    COALESCE(ra.total_flips, 0) AS total_flips,
+                    COALESCE(ra.rounds_played, 0) AS rounds_played,
+                    COALESCE(ra.early_exits, 0) AS early_exits,
+                    COALESCE(ra.bomb_triggers, 0) AS bomb_triggers
                 FROM users u
-                LEFT JOIN user_stats s ON u.id = s.user_id
+                LEFT JOIN round_agg ra ON u.id = ra.user_id
+                LEFT JOIN session_agg sa ON u.id = sa.user_id
                 WHERE u.id = ?
             `, [userId]);
         } catch (error) {
@@ -128,33 +140,42 @@ class User {
         }
     }
 
-    // 获取所有用户列表（管理员用）
+    // 获取所有用户列表（含统计）（管理员用）
     static async getAllUsers() {
         try {
-            // 先简单查询用户表，避免复杂JOIN导致的问题
-            const users = await database.query(`
+            return await database.query(`
+                WITH round_agg AS (
+                    SELECT 
+                        user_id,
+                        COUNT(*) AS rounds_played,
+                        SUM(flipped_cards) AS total_flips,
+                        SUM(CASE WHEN end_reason = 'stop' THEN 1 ELSE 0 END) AS early_exits,
+                        SUM(CASE WHEN end_reason = 'bomb' THEN 1 ELSE 0 END) AS bomb_triggers
+                    FROM game_rounds
+                    GROUP BY user_id
+                ), session_agg AS (
+                    SELECT user_id, COUNT(*) AS games_played
+                    FROM game_sessions
+                    GROUP BY user_id
+                )
                 SELECT 
-                    id,
-                    username,
-                    balance as current_balance,
-                    balance as total_rewards,
-                    created_at,
-                    last_login
-                FROM users
-                WHERE id > 0
-                ORDER BY created_at DESC
+                    u.id,
+                    u.username,
+                    u.balance AS current_balance,
+                    (u.balance - 2000) AS total_rewards,
+                    u.created_at,
+                    u.last_login,
+                    COALESCE(ra.total_flips, 0) AS total_flips,
+                    COALESCE(sa.games_played, 0) AS games_played,
+                    COALESCE(ra.rounds_played, 0) AS rounds_played,
+                    COALESCE(ra.early_exits, 0) AS early_exits,
+                    COALESCE(ra.bomb_triggers, 0) AS bomb_triggers
+                FROM users u
+                LEFT JOIN round_agg ra ON u.id = ra.user_id
+                LEFT JOIN session_agg sa ON u.id = sa.user_id
+                WHERE u.id > 0
+                ORDER BY u.created_at DESC
             `);
-
-            // 为每个用户添加默认统计值
-            return users.map(user => ({
-                ...user,
-                total_flips: 0,
-                games_played: 0,
-                rounds_played: 0,
-                early_exits: 0,
-                bomb_triggers: 0,
-                total_game_time: 0
-            }));
         } catch (error) {
             console.error('getAllUsers error:', error);
             throw error;

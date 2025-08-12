@@ -93,37 +93,25 @@ class AdminController {
                 const {
                     id,
                     username,
-                    current_balance,
-                    total_rewards,
+                    current_balance = 0,
+                    total_rewards = 0,
                     created_at,
                     last_login,
                     total_flips = 0,
                     games_played = 0,
                     rounds_played = 0,
                     early_exits = 0,
-                    bomb_triggers = 0,
-                    total_game_time = 0
+                    bomb_triggers = 0
                 } = user;
 
-                // 计算用户统计数据
-                const earlyExitRate = rounds_played > 0 ? 
-                    (early_exits / rounds_played * 100) : 0;
-                const bombRate = rounds_played > 0 ? 
-                    (bomb_triggers / rounds_played * 100) : 0;
-                
-                // 收益偏离度：实际收益与期望收益的偏差
-                const expectedReward = games_played > 0 ? 
-                    games_played * 200 * 0.6 : 0; // 期望每场游戏净收益60%
-                const actualReward = total_rewards - 2000; // 减去初始基金
-                const profitDeviation = expectedReward > 0 ? 
-                    Math.abs(actualReward - expectedReward) / Math.max(expectedReward, 100) : 0;
-                
-                // 风险估计误差：基于翻牌行为的风险估计准确性
-                const avgFlipsPerRound = rounds_played > 0 ? 
-                    total_flips / rounds_played : 0;
-                const optimalFlipsPerRound = 8; // 理论最优翻牌数
-                const riskError = avgFlipsPerRound > 0 ? 
-                    Math.abs(avgFlipsPerRound - optimalFlipsPerRound) / optimalFlipsPerRound : 0;
+                const earlyExitRate = rounds_played > 0 ? (early_exits / rounds_played * 100) : 0;
+                const bombRate = rounds_played > 0 ? (bomb_triggers / rounds_played * 100) : 0;
+                const expectedReward = games_played > 0 ? games_played * 200 * 0.6 : 0; // 期望收益假设
+                const actualReward = total_rewards; // 已经是净收益
+                const profitDeviation = expectedReward > 0 ? Math.abs(actualReward - expectedReward) / Math.max(expectedReward, 100) : 0;
+                const avgFlipsPerRound = rounds_played > 0 ? (total_flips / rounds_played) : 0;
+                const optimalFlipsPerRound = 8;
+                const riskError = avgFlipsPerRound > 0 ? Math.abs(avgFlipsPerRound - optimalFlipsPerRound) / optimalFlipsPerRound : 0;
 
                 return {
                     id,
@@ -137,7 +125,6 @@ class AdminController {
                     rounds_played,
                     early_exits,
                     bomb_triggers,
-                    total_game_time,
                     earlyExitRate: parseFloat(earlyExitRate.toFixed(1)),
                     bombRate: parseFloat(bombRate.toFixed(1)),
                     profitDeviation: parseFloat(profitDeviation.toFixed(2)),

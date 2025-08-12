@@ -1401,6 +1401,7 @@
                 // 扣除费用并更新后端
                 gameData.totalBonus -= gameData.roundCost;
                 await gameAPI.updateBalance(gameData.totalBonus);
+                await refreshUserInfoBalanceSafe();
                 
                 gameData.currentRoundBonus = 0;
                 gameData.flippedCount = 0;
@@ -1594,6 +1595,7 @@
                 // 异步更新后端余额
                 try {
                     await gameAPI.updateBalance(gameData.totalBonus);
+                    await refreshUserInfoBalanceSafe();
                 } catch (error) {
                     console.error('更新余额失败:', error);
                 }
@@ -1633,6 +1635,7 @@
                     try {
                         // 更新后端余额
                         await gameAPI.updateBalance(gameData.totalBonus);
+                        await refreshUserInfoBalanceSafe();
                         
                         // 记录轮次数据
                         await recordRoundData('win');
@@ -1863,6 +1866,7 @@
                     console.log('管理员登录结果:', result);
                     if (result.data && result.data.token) {
                         gameAPI.setToken(result.data.token);
+                        await refreshUserInfoBalanceSafe();
                         return { success: true, isAdmin: true };
                     }
                 } else {
@@ -1871,12 +1875,27 @@
                     if (result.data && result.data.token) {
                         gameAPI.setToken(result.data.token);
                         gameData.currentUser = username;
+                        await refreshUserInfoBalanceSafe();
                         return { success: true, isAdmin: false };
                     }
                 }
                 return { success: false, message: '登录响应格式错误' };
             } catch (error) {
                 return { success: false, message: error.message || '登录失败' };
+            }
+        }
+
+        async function refreshUserInfoBalanceSafe() {
+            try {
+                const info = await gameAPI.getUserInfo();
+                if (info && info.data) {
+                    gameData.userInfo = info;
+                    gameData.totalBonus = info.data.current_balance || info.data.balance || 2000;
+                    document.getElementById('current-balance').textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                    if (totalBonusEl) totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+                }
+            } catch (e) {
+                console.warn('刷新用户余额失败:', e.message);
             }
         }
         
@@ -1904,6 +1923,7 @@
                 // 更新后端余额
                 try {
                     await gameAPI.updateBalance(gameData.totalBonus);
+                    await refreshUserInfoBalanceSafe();
                 } catch (error) {
                     console.error('更新余额失败:', error);
                 }
@@ -1918,6 +1938,7 @@
                 // 更新后端余额
                 try {
                     await gameAPI.updateBalance(gameData.totalBonus);
+                    await refreshUserInfoBalanceSafe();
                 } catch (error) {
                     console.error('更新余额失败:', error);
                 }
