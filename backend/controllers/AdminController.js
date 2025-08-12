@@ -41,7 +41,7 @@ class AdminController {
             const earlyExitRate = totalRounds > 0 ? 
                 (totalEarlyExits / totalRounds) * 100 : 0;
 
-            // 炸弹触发率
+            // 炸弹触发率 - 触发炸弹的轮次数占总轮次的比例
             const bombRate = totalRounds > 0 ? 
                 (totalBombTriggers / totalRounds) * 100 : 0;
 
@@ -158,14 +158,63 @@ class AdminController {
                 });
             }
 
-            // 获取用户的游戏会话
-            const sessions = await GameSession.getUserSessions(userId);
+            // 获取用户的游戏会话数据
+            const sessions = await database.query(`
+                SELECT 
+                    gs.session_id,
+                    gs.start_time,
+                    gs.end_time,
+                    gs.total_flips,
+                    gs.total_rounds,
+                    gs.total_rewards,
+                    gr.id as round_id,
+                    gr.flipped_cards,
+                    gr.round_bonus,
+                    gr.end_reason,
+                    gr.penalty_amount,
+                    gr.bomb_count,
+                    gr.created_at as round_time
+                FROM game_sessions gs
+                LEFT JOIN game_rounds gr ON gs.session_id = gr.session_id
+                WHERE gs.user_id = ?
+                ORDER BY gs.start_time DESC, gr.created_at ASC
+            `, [userId]);
+
+            // 组织会话和轮次数据
+            const sessionMap = new Map();
+            sessions.forEach(row => {
+                if (!sessionMap.has(row.session_id)) {
+                    sessionMap.set(row.session_id, {
+                        sessionId: row.session_id,
+                        startTime: row.start_time,
+                        endTime: row.end_time,
+                        totalFlips: row.total_flips,
+                        totalRounds: row.total_rounds,
+                        totalRewards: row.total_rewards,
+                        rounds: []
+                    });
+                }
+                
+                if (row.round_id) {
+                    sessionMap.get(row.session_id).rounds.push({
+                        id: row.round_id,
+                        flippedCards: row.flipped_cards,
+                        roundBonus: row.round_bonus,
+                        endReason: row.end_reason,
+                        penaltyAmount: row.penalty_amount,
+                        bombCount: row.bomb_count,
+                        roundTime: row.round_time
+                    });
+                }
+            });
+
+            const organizedSessions = Array.from(sessionMap.values());
 
             res.json({
                 success: true,
                 data: {
                     user,
-                    sessions
+                    sessions: organizedSessions
                 }
             });
         } catch (error) {
@@ -182,7 +231,12 @@ class AdminController {
         try {
             const { userId } = req.params;
             
-            await User.delete(userId);
+            // 删除用户相关的所有数据
+            await database.run('DELETE FROM risk_estimations WHERE session_id IN (SELECT session_id FROM game_sessions WHERE user_id = ?)', [userId]);
+            await database.run('DELETE FROM game_rounds WHERE session_id IN (SELECT session_id FROM game_sessions WHERE user_id = ?)', [userId]);
+            await database.run('DELETE FROM game_sessions WHERE user_id = ?', [userId]);
+            await database.run('DELETE FROM user_stats WHERE user_id = ?', [userId]);
+            await database.run('DELETE FROM users WHERE id = ?', [userId]);
 
             res.json({
                 success: true,
