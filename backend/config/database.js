@@ -1,25 +1,95 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, '..', 'database', 'game.db');
+// 在Vercel环境中使用内存数据库
+const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
+const dbPath = isVercel ? ':memory:' : path.join(__dirname, '..', 'database', 'game.db');
 
 class Database {
     constructor() {
         this.db = null;
+        this.initialized = false;
     }
 
-    connect() {
+    async connect() {
         return new Promise((resolve, reject) => {
-            this.db = new sqlite3.Database(dbPath, (err) => {
+            this.db = new sqlite3.Database(dbPath, async (err) => {
                 if (err) {
                     console.error('Error connecting to database:', err);
                     reject(err);
                 } else {
-                    console.log('Connected to SQLite database');
+                    console.log('Connected to SQLite database:', dbPath);
+                    
+                    // 在Vercel环境中，每次都需要初始化表结构
+                    if (isVercel || !this.initialized) {
+                        try {
+                            await this.initializeTables();
+                            this.initialized = true;
+                            console.log('Database tables initialized');
+                        } catch (initError) {
+                            console.error('Error initializing tables:', initError);
+                            reject(initError);
+                            return;
+                        }
+                    }
+                    
                     resolve(this.db);
                 }
             });
         });
+    }
+
+    async initializeTables() {
+        const tables = [
+            `CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                balance INTEGER DEFAULT 1000
+            )`,
+            `CREATE TABLE IF NOT EXISTS user_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                games_played INTEGER DEFAULT 0,
+                games_won INTEGER DEFAULT 0,
+                total_score INTEGER DEFAULT 0,
+                best_score INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )`,
+            `CREATE TABLE IF NOT EXISTS game_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                score INTEGER NOT NULL,
+                level INTEGER DEFAULT 1,
+                cards_flipped INTEGER DEFAULT 0,
+                bombs_hit INTEGER DEFAULT 0,
+                time_played INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )`
+        ];
+
+        for (const sql of tables) {
+            await this.run(sql);
+        }
+        
+        // 添加默认管理员账号（如果不存在）
+        try {
+            const bcrypt = require('bcrypt');
+            const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10);
+            await this.run(
+                `INSERT OR IGNORE INTO users (id, username, password, balance) VALUES (1, 'admin', ?, 999999)`,
+                [adminPassword]
+            );
+            await this.run(
+                `INSERT OR IGNORE INTO user_stats (user_id) VALUES (1)`
+            );
+        } catch (error) {
+            console.log('Admin user already exists or error creating:', error.message);
+        }
     }
 
     close() {

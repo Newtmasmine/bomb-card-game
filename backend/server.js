@@ -12,6 +12,22 @@ const gameRoutes = require('./routes/game');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 数据库连接中间件 - 确保每次请求都有数据库连接
+const ensureDBConnection = async (req, res, next) => {
+    try {
+        if (!db.db) {
+            await db.connect();
+        }
+        next();
+    } catch (error) {
+        console.error('Database connection error:', error);
+        res.status(500).json({
+            success: false,
+            message: '数据库连接失败'
+        });
+    }
+};
+
 // 创建限流器
 const rateLimiter = new RateLimiterMemory({
     keyPrefix: 'middleware',
@@ -52,6 +68,7 @@ app.use(cors({
 })); // 跨域
 app.use(express.json({ limit: '10mb' })); // JSON解析
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL编码解析
+app.use(ensureDBConnection); // 确保数据库连接
 app.use(rateLimiterMiddleware); // 限流
 
 // 请求日志中间件
