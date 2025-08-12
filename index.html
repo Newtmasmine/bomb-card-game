@@ -1285,12 +1285,12 @@
                         showNewUserBonusDialog();
                     }, 500);
                 } else {
-                    showGameReadyState();
+                    await showGameReadyState();
                 }
             } catch (error) {
                 console.error('初始化游戏失败:', error);
                 alert('初始化游戏失败，请重试');
-                showGameReadyState();
+                await showGameReadyState();
             }
         }
         
@@ -1379,10 +1379,10 @@
             // 关闭对话框
             document.getElementById('close-bonus-dialog').addEventListener('click', () => {
                 dialog.style.animation = 'fadeOut 0.3s ease-out';
-                setTimeout(() => {
+                setTimeout(async () => {
                     document.body.removeChild(dialog);
                     document.head.removeChild(style);
-                    showGameReadyState();
+                    await showGameReadyState();
                 }, 300);
             });
             
@@ -1396,13 +1396,36 @@
         }
         
         // 显示游戏准备状态
-        function showGameReadyState() {
-            // 使用从后端获取的用户余额，确保数据存在
-            if (gameData.userInfo && gameData.userInfo.data) {
-                gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
-            } else {
-                // 如果没有用户信息，使用新用户默认值2000元
-                gameData.totalBonus = 2000;
+        async function showGameReadyState() {
+            try {
+                // 主动刷新用户余额信息，确保显示最新余额
+                await refreshUserInfoBalanceSafe();
+                
+                // 使用刷新后的用户余额
+                if (gameData.userInfo && gameData.userInfo.data) {
+                    gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
+                } else {
+                    // 如果刷新失败，尝试直接获取用户信息
+                    try {
+                        const userInfo = await gameAPI.getUserInfo();
+                        gameData.userInfo = userInfo;
+                        gameData.totalBonus = userInfo.data.current_balance || 2000;
+                    } catch (error) {
+                        console.warn('获取用户信息失败，使用默认值:', error);
+                        gameData.totalBonus = 2000;
+                    }
+                }
+                
+                console.log('游戏准备状态，刷新后的最新余额:', gameData.totalBonus);
+                
+            } catch (error) {
+                console.error('刷新用户信息失败:', error);
+                // 如果刷新失败，使用现有数据或默认值
+                if (gameData.userInfo && gameData.userInfo.data) {
+                    gameData.totalBonus = gameData.userInfo.data.current_balance || 2000;
+                } else {
+                    gameData.totalBonus = 2000;
+                }
             }
             
             // 立即更新游戏页面的余额显示
@@ -1426,7 +1449,7 @@
             gameData.flippedCount = 0;
             gameData.currentRoundBonus = 0;
             
-            console.log('游戏准备状态，当前余额:', gameData.totalBonus);
+            console.log('游戏准备状态完成，显示余额:', gameData.totalBonus);
         }
         
         // 开始新一轮游戏
@@ -1687,8 +1710,8 @@
                     }
                     
                     // 延迟后返回开始游戏界面
-                    setTimeout(() => {
-                        showGameReadyState();
+                    setTimeout(async () => {
+                        await showGameReadyState();
                     }, 2000);
                 }, 1000);
             }
@@ -1824,8 +1847,8 @@
             showFundBonusEffect();
             
             // 显示游戏准备状态
-            setTimeout(() => {
-                showGameReadyState();
+            setTimeout(async () => {
+                await showGameReadyState();
             }, 3000);
         }
         
@@ -2027,8 +2050,8 @@
             }
             
             // 延迟后返回开始游戏界面
-            setTimeout(() => {
-                showGameReadyState();
+            setTimeout(async () => {
+                await showGameReadyState();
             }, 2000);
         }
         
