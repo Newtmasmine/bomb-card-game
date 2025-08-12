@@ -1218,7 +1218,8 @@
             try {
                 // 获取用户信息
                 gameData.userInfo = await gameAPI.getUserInfo();
-                gameData.totalBonus = gameData.userInfo.balance;
+                // 修复：使用正确的字段名
+                gameData.totalBonus = gameData.userInfo.data.current_balance || 1000;
                 
                 // 创建新的游戏会话
                 const sessionData = {
@@ -1255,9 +1256,12 @@
         
         // 显示游戏准备状态
         function showGameReadyState() {
-            // 使用从后端获取的用户余额
-            if (gameData.userInfo) {
-                gameData.totalBonus = gameData.userInfo.balance;
+            // 使用从后端获取的用户余额，确保数据存在
+            if (gameData.userInfo && gameData.userInfo.data) {
+                gameData.totalBonus = gameData.userInfo.data.current_balance || 1000;
+            } else {
+                // 如果没有用户信息，使用默认值
+                gameData.totalBonus = 1000;
             }
             
             // 更新余额显示
