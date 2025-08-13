@@ -1915,11 +1915,19 @@
         });
         
         // 初始化
-        window.onload = () => {
+        window.onload = async () => {
             // 检查是否有保存的token，自动尝试验证登录状态
             if (gameData.userToken) {
-                // 可以在这里添加token验证逻辑
                 console.log('发现已保存的登录token');
+            }
+            
+            // 测试API连接
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                console.log('API连接测试成功:', data);
+            } catch (error) {
+                console.error('API连接测试失败:', error);
             }
         };
     </script>
