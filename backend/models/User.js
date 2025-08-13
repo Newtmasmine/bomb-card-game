@@ -13,14 +13,19 @@ class User {
                 [username, hashedPassword]
             );
 
-            // 同时创建用户统计记录
-            await database.run(
-                `INSERT INTO user_stats (user_id) VALUES (?)`,
-                [result.id]
-            );
+            // 尝试创建用户统计记录，如果失败则忽略
+            try {
+                await database.run(
+                    `INSERT INTO user_stats (user_id) VALUES (?)`,
+                    [result.id]
+                );
+            } catch (statsError) {
+                console.warn('创建用户统计记录失败，但用户创建成功:', statsError);
+            }
 
             return result.id;
         } catch (error) {
+            console.error('创建用户失败:', error);
             throw error;
         }
     }
