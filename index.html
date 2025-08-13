@@ -1047,12 +1047,19 @@
                     body: JSON.stringify({ username, password })
                 });
 
+                console.log('登录响应数据:', data);
+                console.log('提取的token:', data.data.token);
+                
                 gameData.userToken = data.data.token;
                 gameData.currentUser = data.data.user.username;
                 localStorage.setItem('userToken', data.data.token);
                 
+                console.log('已设置gameData.userToken:', gameData.userToken);
+                console.log('已设置gameData.currentUser:', gameData.currentUser);
+                
                 return { success: true, isAdmin: false };
             } catch (error) {
+                console.error('登录API错误:', error);
                 return { success: false, message: error.message };
             }
         }
