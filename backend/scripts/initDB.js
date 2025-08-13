@@ -21,11 +21,9 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        balance INTEGER DEFAULT 2000,
         is_first_login BOOLEAN DEFAULT 1,
-        initial_fund INTEGER DEFAULT 2000,
-        current_balance INTEGER DEFAULT 2000,
-        total_rewards INTEGER DEFAULT 2000,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_login DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 

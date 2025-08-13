@@ -62,7 +62,7 @@ class User {
     // 获取用户统计数据
     static async getStats(userId) {
         try {
-            return await database.get(`
+            const result = await database.get(`
                 WITH round_agg AS (
                     SELECT 
                         user_id,
@@ -80,8 +80,8 @@ class User {
                 SELECT 
                     u.id,
                     u.username,
-                    u.balance AS current_balance,
-                    (u.balance - 2000) AS total_rewards,
+                    u.balance AS balance,
+                    u.is_first_login,
                     u.created_at,
                     u.last_login,
                     COALESCE(sa.games_played, 0) AS games_played,
@@ -94,6 +94,12 @@ class User {
                 LEFT JOIN session_agg sa ON u.id = sa.user_id
                 WHERE u.id = ?
             `, [userId]);
+            
+            if (result) {
+                result.isFirstLogin = Boolean(result.is_first_login);
+            }
+            
+            return result;
         } catch (error) {
             console.error('getStats error:', error);
             throw error;
@@ -109,6 +115,19 @@ class User {
             );
         } catch (error) {
             console.error('updateBalance error:', error);
+            throw error;
+        }
+    }
+
+    // 设置用户不再是首次登录
+    static async setFirstLoginCompleted(userId) {
+        try {
+            await database.run(
+                `UPDATE users SET is_first_login = 0 WHERE id = ?`,
+                [userId]
+            );
+        } catch (error) {
+            console.error('setFirstLoginCompleted error:', error);
             throw error;
         }
     }

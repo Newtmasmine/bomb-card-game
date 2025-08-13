@@ -15,6 +15,12 @@ class GameController {
                 });
             }
 
+            // 如果是首次登录，标记为已完成首次登录
+            if (userStats.isFirstLogin) {
+                await User.setFirstLoginCompleted(userId);
+                userStats.isFirstLogin = false;
+            }
+
             res.json({
                 success: true,
                 data: userStats
