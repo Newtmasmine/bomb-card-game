@@ -968,201 +968,106 @@
     </div>
 
     <script>
-        // 版本信息 - 2025-08-12 Backend Connected
-        console.log('游戏版本: 2025-08-12 - 后端连接版本');
-        
-        // API配置 - 根据环境自动切换
-        const getAPIBaseURL = () => {
-            // 如果是localhost，使用本地开发环境
-            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-                return 'http://localhost:3000/api';
-            }
-            // 生产环境 - 使用固定域名
-            const fixedURL = 'https://bomb-card-game-backend.vercel.app/api';
-            console.log('使用固定API地址:', fixedURL);
-            return fixedURL;
-        };
-        
-        const API_BASE_URL = getAPIBaseURL();
-        
-        // API管理类
-        class GameAPI {
-            constructor() {
-                this.token = localStorage.getItem('authToken');
-                this.baseURL = API_BASE_URL;
-            }
-            
-            // 设置认证token
-            setToken(token) {
-                console.log('设置Token:', token);
-                this.token = token;
-                localStorage.setItem('authToken', token);
-            }
-            
-            // 清除token
-            clearToken() {
-                this.token = null;
-                localStorage.removeItem('authToken');
-            }
-            
-            // 通用请求方法
-            async request(endpoint, options = {}) {
-                const url = `${this.baseURL}${endpoint}`;
-                const config = {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    ...options
+        // API 配置
+        const API_CONFIG = {
+            BASE_URL: 'https://bomb-card-game-backend.vercel.app/api',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            getAuthHeaders: () => {
+                const token = localStorage.getItem('authToken');
+                return token ? {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                } : {
+                    'Content-Type': 'application/json'
                 };
-                
-                // 添加认证头
-                if (this.token) {
-                    config.headers.Authorization = `Bearer ${this.token}`;
-                    console.log('已添加Authorization头');
-                }
-                
+            }
+        };
+
+        // API 工具函数
+        const apiUtils = {
+            async request(endpoint, options = {}) {
                 try {
-                    console.log('发送API请求:', url, config);
-                    const response = await fetch(url, config);
-                    
-                    if (!response.ok) {
-                        console.error('HTTP错误状态:', response.status, response.statusText);
-                        let errorMessage;
-                        try {
-                            const errorData = await response.json();
-                            errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-                        } catch (e) {
-                            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+                        ...options,
+                        headers: {
+                            ...API_CONFIG.getAuthHeaders(),
+                            ...options.headers
                         }
-                        throw new Error(errorMessage);
-                    }
+                    });
                     
                     const data = await response.json();
-                    console.log('API响应成功:', data);
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || '请求失败');
+                    }
+                    
                     return data;
                 } catch (error) {
                     console.error('API请求错误:', error);
-                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                        throw new Error('网络连接失败，请检查网络或稍后重试');
+                    // 如果是网络错误或服务器不可用，继续使用本地存储
+                    return null;
+                }
+            },
+
+            async syncUserData() {
+                if (!gameData.currentUser) return;
+                
+                try {
+                    // 尝试同步用户数据到后端
+                    const response = await this.request('/game/user/balance', {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            balance: gameData.totalBonus
+                        })
+                    });
+                    
+                    if (response && response.success) {
+                        console.log('用户数据已同步到后端');
                     }
-                    throw error;
+                } catch (error) {
+                    console.log('后端同步失败，继续使用本地存储');
                 }
-            }
-            
-            // 用户登录
-            async login(username, password) {
-                return this.request('/auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, password })
-                });
-            }
-            
-            // 用户注册
-            async register(username, password) {
-                return this.request('/auth/register', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, password })
-                });
-            }
-            
-            // 获取用户信息
-            async getUserInfo() {
-                return this.request('/user/info');
-            }
-            
-            // 更新余额
-            async updateBalance(newBalance) {
-                return this.request('/user/balance', {
-                    method: 'PUT',
-                    body: JSON.stringify({ balance: newBalance })
-                });
-            }
-            
-            // 记录游戏会话
-            async recordSession(sessionData) {
-                return this.request('/game/session', {
-                    method: 'POST',
-                    body: JSON.stringify(sessionData)
-                });
-            }
-            
-            // 记录游戏轮次
-            async recordRound(roundData) {
-                return this.request('/game/round', {
-                    method: 'POST',
-                    body: JSON.stringify(roundData)
-                });
-            }
-            
-            // 记录风险估计数据
-            async recordRiskEstimation(data) {
-                return this.request('/game/risk-estimation', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-            }
-            
-            // 获取管理员统计数据
-            async getAdminStats() {
-                return this.request('/admin/stats');
-            }
-            
-            // 获取所有用户数据
-            async getAllUsers() {
-                return this.request('/admin/users');
-            }
-            
-            // 获取用户详情
-            async getUserDetail(userId) {
-                return this.request(`/admin/users/${userId}`);
-            }
-            
-            // 删除用户
-            async deleteUser(userId) {
-                return this.request(`/admin/users/${userId}`, {
-                    method: 'DELETE'
-                });
-            }
-            
-            // 清空所有数据
-            async clearAllData() {
-                return this.request('/admin/data/clear', {
-                    method: 'DELETE'
-                });
-            }
-        }
-        
-        // 创建API实例
-        const gameAPI = new GameAPI();
-        
-        // 添加用户信息更新函数
-        async function refreshUserInfoBalanceSafe() {
-            try {
-                const userInfo = await gameAPI.getUserInfo();
-                gameData.userInfo = userInfo;
-                gameData.totalBonus = userInfo.data.current_balance || 2000;
-                console.log('用户信息刷新成功，当前余额:', gameData.totalBonus);
-                return true;
-            } catch (error) {
-                console.error('刷新用户信息失败:', error);
+            },
+
+            async loadUserData() {
+                if (!gameData.currentUser) return;
+                
+                try {
+                    // 尝试从后端获取用户数据
+                    const response = await this.request('/game/user/info');
+                    
+                    if (response && response.success && response.data) {
+                        // 如果后端有数据，使用后端数据
+                        gameData.totalBonus = response.data.balance || 0;
+                        console.log('用户数据已从后端加载');
+                        return true;
+                    }
+                } catch (error) {
+                    console.log('后端加载失败，使用本地存储');
+                }
                 return false;
-            }
-        }
-        
-        // 更新游戏页面余额显示
-        async function updateGamePageBalance() {
-            try {
-                await refreshUserInfoBalanceSafe();
-                if (totalBonusEl) {
-                    totalBonusEl.textContent = `¥${gameData.totalBonus.toLocaleString()}`;
+            },
+
+            async recordGameSession(sessionData) {
+                try {
+                    const response = await this.request('/game/session', {
+                        method: 'POST',
+                        body: JSON.stringify(sessionData)
+                    });
+                    
+                    if (response && response.success) {
+                        console.log('游戏会话已记录到后端');
+                        return response.data;
+                    }
+                } catch (error) {
+                    console.log('游戏会话记录失败，继续本地记录');
                 }
-                console.log('游戏页面余额已更新:', gameData.totalBonus);
-            } catch (error) {
-                console.error('更新游戏页面余额失败:', error);
+                return null;
             }
-        }
-        
+        };
+
         // 游戏数据
         const gameData = {
             // 卡片配置
@@ -1177,15 +1082,14 @@
             gameActive: false,
             roundEnded: false,
             currentPlayerSession: null,
-            currentSessionId: null, // 当前游戏会话ID
             currentUser: null,
             isRegistering: false,
             roundCost: 200, // 每轮游戏费用
             
-            // 用户信息（从后端获取）
-            userInfo: null,
+            // 用户系统
+            users: JSON.parse(localStorage.getItem('cardGameUsers') || '{}'),
             
-            // 统计数据（管理员可见，保持向后兼容）
+            // 统计数据（管理员可见）
             stats: {
                 totalFlips: 0,
                 gamesPlayed: 0,
@@ -1198,7 +1102,7 @@
                 averageCardsFlippedPerRound: 0
             },
             
-            // 玩家会话数据（保持向后兼容）
+            // 玩家会话数据
             playerSessions: JSON.parse(localStorage.getItem('cardGameSessions') || '[]')
         };
         
@@ -1319,9 +1223,8 @@
             gameBoard.innerHTML = '';
             gameData.cards = [];
             
-            // 随机生成炸弹数量（1-10个）
-            gameData.bombCount = Math.floor(Math.random() * 10) + 1;
-            
+            // 随机生成炸弹数量（4-10个）
+            gameData.bombCount = Math.floor(Math.random() * 1) + 16;
             // 创建炸弹卡片
             for (let i = 0; i < gameData.bombCount; i++) {
                 gameData.cards.push({
@@ -1392,46 +1295,32 @@
         // 翻牌
         function flipCard(index) {
             if (!gameData.gameActive || gameData.roundEnded || gameData.cards[index].flipped) return;
-            
             const card = gameData.cards[index];
             card.flipped = true;
             gameData.flippedCount++;
-            
             // 只更新当前用户的游戏会话数据
             gameData.currentPlayerSession.totalFlips++;
-            
             // 更新用户翻牌统计
             if (gameData.currentUser && gameData.users[gameData.currentUser]) {
                 gameData.users[gameData.currentUser].stats.totalFlips++;
             }
-            
             // 更新UI
             flippedCountEl.textContent = gameData.flippedCount;
             remainingCardsEl.textContent = 16 - gameData.flippedCount;
-            
             const cardEl = gameBoard.children[index];
             cardEl.classList.add('flipped');
-            
             // 处理卡片类型
             if (card.type === 'reward') {
                 cardEl.classList.add('reward');
                 gameData.currentRoundBonus += card.value;
-                
-                // 显示金币特效
                 showCoinEffect(cardEl);
-                
-                // 延迟更新金额以配合特效
                 setTimeout(() => {
                     animateNumberRoll(currentBonusEl, `¥${gameData.currentRoundBonus.toLocaleString()}`, true);
                 }, 300);
-                
                 gameMessageEl.textContent = `恭喜！获得 ¥${card.value.toLocaleString()} 奖励！`;
                 gameMessageEl.style.color = '#4caf50';
-                
                 // 检查是否所有奖励卡都已翻开
-                const allRewardsFlipped = gameData.cards.filter(c => 
-                    c.type === 'reward' && !c.flipped).length === 0;
-                
+                const allRewardsFlipped = gameData.cards.filter(c => c.type === 'reward' && !c.flipped).length === 0;
                 if (allRewardsFlipped) {
                     setTimeout(() => {
                         endRound('win');
@@ -1439,35 +1328,32 @@
                 }
             } else {
                 cardEl.classList.add('bomb');
-                
-                // 只更新当前用户的游戏会话数据
                 gameData.currentPlayerSession.totalBombHits++;
-                
-                // 更新用户炸弹触发统计
                 if (gameData.currentUser && gameData.users[gameData.currentUser]) {
                     gameData.users[gameData.currentUser].stats.bombTriggers++;
                 }
-                
-                // 显示爆炸特效
                 showExplosionEffect();
-                
                 // 生成随机惩罚金额（100-2000）
                 const penaltyAmount = Math.floor(Math.random() * 1901) + 100;
-                
-                // 扣除惩罚金额
-                gameData.totalBonus -= penaltyAmount;
-                if (gameData.totalBonus < 0) {
-                    gameData.totalBonus = 0;
+                // 新炸弹扣款顺序：先扣本轮奖金，不足再扣余额
+                let leftPenalty = penaltyAmount;
+                let roundDeduct = 0;
+                if (gameData.currentRoundBonus >= leftPenalty) {
+                    roundDeduct = leftPenalty;
+                    gameData.currentRoundBonus -= leftPenalty;
+                    leftPenalty = 0;
+                } else {
+                    roundDeduct = gameData.currentRoundBonus;
+                    leftPenalty -= gameData.currentRoundBonus;
+                    gameData.currentRoundBonus = 0;
                 }
-                
+                gameData.totalBonus -= leftPenalty;
+                // 余额可为负
                 setTimeout(() => {
-                    // 显示惩罚特效
                     showPenaltyEffect(penaltyAmount);
-                    
-                    // 更新显示
+                    animateNumberRoll(currentBonusEl, `¥${gameData.currentRoundBonus.toLocaleString()}`, false);
                     animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, false);
-                    
-                    gameMessageEl.textContent = `💣 炸弹！扣除惩罚金额¥${penaltyAmount.toLocaleString()}，继续翻牌！`;
+                    gameMessageEl.textContent = `💣 炸弹！本轮奖金扣除¥${roundDeduct.toLocaleString()}，余额扣除¥${leftPenalty.toLocaleString()}，继续翻牌！`;
                     gameMessageEl.style.color = '#f44336';
                 }, 500);
             }
@@ -1504,6 +1390,15 @@
                         
                         // 也添加到全局playerSessions（为了向后兼容）
                         gameData.playerSessions.push(sessionCopy);
+                        
+                        // 尝试将会话数据同步到后端
+                        apiUtils.recordGameSession(sessionCopy).then(backendSession => {
+                            if (backendSession) {
+                                console.log('游戏会话已同步到后端');
+                            }
+                        }).catch(error => {
+                            console.log('会话同步失败:', error);
+                        });
                     }
                     
                     saveUserData();
@@ -1674,9 +1569,13 @@
         }
         
         // 用户管理函数
-        function saveUserData() {
+        async function saveUserData() {
+            // 保存到本地存储
             localStorage.setItem('cardGameUsers', JSON.stringify(gameData.users));
             localStorage.setItem('cardGameSessions', JSON.stringify(gameData.playerSessions));
+            
+            // 同步到后端
+            await apiUtils.syncUserData();
         }
         
         // 退出游戏
@@ -1701,7 +1600,46 @@
             }
         }
         
-        function registerUser(username, password) {
+        async function registerUser(username, password) {
+            // 先尝试后端注册
+            try {
+                const response = await apiUtils.request('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response && response.success) {
+                    // 后端注册成功，保存token
+                    if (response.token) {
+                        localStorage.setItem('authToken', response.token);
+                    }
+                    
+                    // 同时在本地创建用户记录
+                    gameData.users[username] = {
+                        password: password,
+                        created: Date.now(),
+                        isFirstLogin: true,
+                        initialFund: 2000,
+                        sessions: [],
+                        riskEstimations: [],
+                        stats: {
+                            totalFlips: 0,
+                            gamesPlayed: 0,
+                            roundsPlayed: 0,
+                            earlyExits: 0,
+                            bombTriggers: 0,
+                            totalRewards: 2000
+                        }
+                    };
+                    saveUserData();
+                    console.log('用户已在后端和本地注册');
+                    return { success: true, message: '注册成功', isNewUser: true };
+                }
+            } catch (error) {
+                console.log('后端注册失败，使用本地注册');
+            }
+            
+            // 后端失败，使用本地注册逻辑
             if (gameData.users[username]) {
                 return { success: false, message: '用户名已存在' };
             }
@@ -1711,15 +1649,15 @@
                 created: Date.now(),
                 isFirstLogin: true,
                 initialFund: 2000,
-                sessions: [], // 用户的游戏会话历史
-                riskEstimations: [], // 用户的风险估计数据
+                sessions: [],
+                riskEstimations: [],
                 stats: {
                     totalFlips: 0,
                     gamesPlayed: 0,
                     roundsPlayed: 0,
                     earlyExits: 0,
                     bombTriggers: 0,
-                    totalRewards: 2000 // 包含初始基金
+                    totalRewards: 2000
                 }
             };
             
@@ -1727,11 +1665,56 @@
             return { success: true, message: '注册成功', isNewUser: true };
         }
         
-        function loginUser(username, password) {
+        async function loginUser(username, password) {
+            // 管理员登录检查
             if (username === 'admin' && password === 'admin001') {
+                // 尝试后端管理员认证
+                try {
+                    const response = await apiUtils.request('/auth/admin/login', {
+                        method: 'POST',
+                        body: JSON.stringify({ username, password })
+                    });
+                    
+                    if (response && response.success && response.token) {
+                        localStorage.setItem('authToken', response.token);
+                        console.log('管理员已通过后端认证');
+                    }
+                } catch (error) {
+                    console.log('管理员后端认证失败，使用本地认证');
+                }
                 return { success: true, isAdmin: true };
             }
             
+            // 先尝试后端登录
+            try {
+                const response = await apiUtils.request('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response && response.success) {
+                    // 后端登录成功
+                    if (response.token) {
+                        localStorage.setItem('authToken', response.token);
+                    }
+                    
+                    gameData.currentUser = username;
+                    
+                    // 尝试从后端加载用户数据
+                    const dataLoaded = await apiUtils.loadUserData();
+                    if (!dataLoaded && gameData.users[username]) {
+                        // 如果后端没有数据，使用本地数据
+                        gameData.totalBonus = gameData.users[username].stats.totalRewards || 2000;
+                    }
+                    
+                    console.log('用户已通过后端认证');
+                    return { success: true, isAdmin: false };
+                }
+            } catch (error) {
+                console.log('后端登录失败，使用本地登录');
+            }
+            
+            // 后端失败，使用本地登录逻辑
             if (!gameData.users[username] || gameData.users[username].password !== password) {
                 return { success: false, message: '用户名或密码错误' };
             }
@@ -1765,21 +1748,24 @@
             };
             
             if (reason === 'bomb') {
-                // 扣除惩罚金额而不是清零
-                gameData.totalBonus -= penaltyAmount;
-                // 确保余额不为负数
-                if (gameData.totalBonus < 0) {
-                    gameData.totalBonus = 0;
+                // 新炸弹扣款顺序：先扣本轮奖金，不足再扣余额
+                let leftPenalty = penaltyAmount;
+                let roundDeduct = 0;
+                if (gameData.currentRoundBonus >= leftPenalty) {
+                    roundDeduct = leftPenalty;
+                    gameData.currentRoundBonus -= leftPenalty;
+                    leftPenalty = 0;
+                } else {
+                    roundDeduct = gameData.currentRoundBonus;
+                    leftPenalty -= gameData.currentRoundBonus;
+                    gameData.currentRoundBonus = 0;
                 }
-                gameData.currentRoundBonus = 0;
-                
-                gameMessageEl.textContent = `💣 炸弹！扣除惩罚金额¥${penaltyAmount.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
+                gameData.totalBonus -= leftPenalty;
+                // 余额可为负
+                gameMessageEl.textContent = `💣 炸弹！本轮奖金扣除¥${roundDeduct.toLocaleString()}，余额扣除¥${leftPenalty.toLocaleString()}，当前余额：¥${gameData.totalBonus.toLocaleString()}`;
                 gameMessageEl.style.color = '#f44336';
-                
-                // 金额下降动画
-                animateNumberRoll(currentBonusEl, '¥0', false);
+                animateNumberRoll(currentBonusEl, `¥${gameData.currentRoundBonus.toLocaleString()}`, false);
                 animateNumberRoll(totalBonusEl, `¥${gameData.totalBonus.toLocaleString()}`, false);
-                
                 roundData.totalBonusAfter = gameData.totalBonus;
             } else if (reason === 'win') {
                 gameData.totalBonus += gameData.currentRoundBonus;
@@ -2209,9 +2195,6 @@
         document.getElementById('clear-all-data-btn').addEventListener('click', clearAllData);
         
         document.getElementById('logout-btn').addEventListener('click', () => {
-            // 清除认证token
-            gameAPI.clearToken();
-            
             adminPage.classList.remove('active');
             loginPage.classList.add('active');
             
@@ -2221,79 +2204,36 @@
             document.getElementById('error-message').textContent = '';
         });
         
-        // 后端连接的登录函数
-        async function loginUser(username, password) {
-            try {
-                if (username === 'admin' && password === 'admin001') {
-                    return { success: true, isAdmin: true };
-                }
-                
-                const response = await gameAPI.login(username, password);
-                if (response.success) {
-                    gameAPI.setToken(response.token);
-                    gameData.currentUser = username;
-                    return { success: true, isAdmin: false };
-                } else {
-                    return { success: false, message: response.message || '登录失败' };
-                }
-            } catch (error) {
-                console.error('登录错误:', error);
-                return { success: false, message: error.message || '登录失败，请重试' };
-            }
-        }
-        
-        // 后端连接的注册函数
-        async function registerUser(username, password) {
-            try {
-                const response = await gameAPI.register(username, password);
-                if (response.success) {
-                    return { success: true, message: '注册成功', isNewUser: true };
-                } else {
-                    return { success: false, message: response.message || '注册失败' };
-                }
-            } catch (error) {
-                console.error('注册错误:', error);
-                return { success: false, message: error.message || '注册失败，请重试' };
-            }
-        }
-        
-        // 更新管理员统计数据以使用后端API
-        async function updateAdminStats() {
-            try {
-                const stats = await gameAPI.getAdminStats();
-                const users = await gameAPI.getAllUsers();
-                
-                // 更新统计显示
-                totalFlipsEl.textContent = stats.data.totalFlips || '0';
-                totalGamesEl.textContent = stats.data.totalGames || '0';
-                earlyExitRateEl.textContent = `${(stats.data.earlyExitRate || 0).toFixed(1)}%`;
-                bombRateEl.textContent = `${(stats.data.bombRate || 0).toFixed(1)}%`;
-                profitDeviationEl.textContent = (stats.data.profitDeviation || 0).toFixed(2);
-                riskErrorEl.textContent = (stats.data.riskError || 0).toFixed(2);
-                
-                // 更新用户详细数据表格
-                await updateUserDataTable(users.data);
-            } catch (error) {
-                console.error('获取管理员统计数据失败:', error);
-                // 如果后端失败，显示默认数据
-                totalFlipsEl.textContent = '0';
-                totalGamesEl.textContent = '0';
-                earlyExitRateEl.textContent = '0.0%';
-                bombRateEl.textContent = '0.0%';
-                profitDeviationEl.textContent = '0.00';
-                riskErrorEl.textContent = '0.00';
-            }
-        }
-        
         // 初始化
         window.onload = () => {
-            // 检查是否有保存的认证token
-            const savedToken = localStorage.getItem('authToken');
-            if (savedToken) {
-                gameAPI.setToken(savedToken);
+            // 初始化一些演示数据（实际使用中可以从服务器加载）
+            gameData.stats.totalFlips = 1250;
+            gameData.stats.gamesPlayed = 15;
+            gameData.stats.roundsPlayed = 89;
+            gameData.stats.earlyExits = 23;
+            gameData.stats.bombTriggers = 18;
+            
+            // 添加一些模拟的玩家会话数据用于演示
+            for (let i = 0; i < 15; i++) {
+                gameData.playerSessions.push({
+                    startTime: Date.now() - Math.random() * 86400000 * 7, // 过去一周内
+                    totalRewards: Math.floor(Math.random() * 500) + 50,
+                    rounds: Array.from({length: Math.floor(Math.random() * 10) + 1}, (_, j) => ({
+                        round: j + 1,
+                        flippedCards: Math.floor(Math.random() * 16) + 1,
+                        endReason: ['bomb', 'stop', 'win'][Math.floor(Math.random() * 3)]
+                    }))
+                });
             }
             
-            console.log('游戏已加载，版本: 2025-08-12 Backend Connected');
+            // 生成一些风险估计数据
+            for (let i = 0; i < 100; i++) {
+                gameData.stats.riskEstimations.push({
+                    actualBombProb: Math.random() * 0.5,
+                    flippedCount: Math.floor(Math.random() * 16) + 1,
+                    round: Math.floor(Math.random() * 10) + 1
+                });
+            }
         };
     </script>
 </body>
